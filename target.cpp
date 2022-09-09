@@ -20,9 +20,9 @@ void Target::TargetInit()
     target_serial_port->setStopBits(QSerialPort::OneStop);
     target_serial_port->setFlowControl(QSerialPort::NoFlowControl);
     if (target_serial_port->open(QIODevice::ReadWrite)) {
-        qDebug() << "Open:" << target_serial_name << endl;
+        qDebug() << "Open:" << target_serial_name << Qt::endl;
     } else {
-        qDebug() << "Fail to open:" << target_serial_name << endl;
+        qDebug() << "Fail to open:" << target_serial_name << Qt::endl;
         return;
     }
     connect(target_serial_port, SIGNAL(readyRead()), this, SLOT(TargetSerialReadyRead()));

@@ -16,7 +16,7 @@ Transmit::Transmit(int argc, char *argv[])
     if (argc <= 1) {
         window->install_message_handler();
         window->show();
-        qDebug() << "Nuclei Dlink GDB Server " << version << "Command Line Version" << endl;
+        qDebug() << "Nuclei Dlink GDB Server " << version << "Command Line Version" << Qt::endl;
         //TODO:
         connect(window, SIGNAL(ui_connect(QString, QString, QString, QString)),
                 this, SLOT(user_connect(QString, QString, QString, QString)));
@@ -48,16 +48,16 @@ Transmit::Transmit(int argc, char *argv[])
                     interface = TARGET_INTERFACE_CJTAG;
                 }
             } else {
-                qDebug() << "These are common Nuclei Dlink GDB Server commands used in various situations:" << endl;
+                qDebug() << "These are common Nuclei Dlink GDB Server commands used in various situations:" << Qt::endl;
                 qDebug() << "    command        parameter        example   example";
                 qDebug() << "    -p/--port      port number      -p 3333   --port 3334";
                 qDebug() << "    -s/--serial    serial name      -s COM5   --serial /dev/ttyUSB1";
                 qDebug() << "    -b/--baud      serial baud rate -b 115200 --baud 9600";
                 qDebug() << "    -i/--interface target interface -i jtag   --interface cjtag";
-                qDebug() << endl << "----END----" << endl;
+                qDebug() << Qt::endl << "----END----" << Qt::endl;
             }
         }
-        qDebug() << "Nuclei Dlink GDB Server " << version << "Command Line Version" << endl;
+        qDebug() << "Nuclei Dlink GDB Server " << version << "Command Line Version" << Qt::endl;
         gdb_server->server_port = port.toUShort(nullptr, 10);
         gdb_server->ServerInit();
         rv_target->target_serial_name = serial;
