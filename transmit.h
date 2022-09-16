@@ -30,7 +30,7 @@ private:
     QString port;
     QString serial;
     QString baud;
-    target_interface_t interface;
+    QString interface;
 
     bool close_flag = false;
 

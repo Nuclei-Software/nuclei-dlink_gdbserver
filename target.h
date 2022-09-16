@@ -6,14 +6,6 @@
 #include <QSerialPort>
 #include <QQueue>
 
-typedef enum {
-    TARGET_INTERFACE_JTAG,
-    TARGET_INTERFACE_CJTAG,
-    TARGET_INTERFACE_TWDI,
-    TARGET_INTERFACE_NW,
-    TARGET_INTERFACE_MAX,
-} target_interface_t;
-
 class Target : public QObject
 {
     Q_OBJECT
@@ -24,11 +16,12 @@ public:
 
     QString target_serial_name;
     qint32 target_serial_baud;
-    target_interface_t target_interface;
     QQueue<QByteArray> target_queue;
 
 private:
     QSerialPort* target_serial_port;
+
+    QByteArray target_msg;
 
 signals:
     void TargetToServer(QByteArray);

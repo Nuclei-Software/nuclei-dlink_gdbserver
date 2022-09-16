@@ -29,7 +29,7 @@ Transmit::Transmit(int argc, char *argv[])
         serial = "/dev/ttyUSB1";
         #endif
         baud = "115200";
-        interface = TARGET_INTERFACE_JTAG;
+        interface = "jtag";
         for (int i = 1;i < argc;i += 2) {
             if ((0 == strncmp(argv[i], "-p", strlen(argv[i]))) || \
                 (0 == strncmp(argv[i], "--port", strlen(argv[i])))) {
@@ -42,11 +42,7 @@ Transmit::Transmit(int argc, char *argv[])
                 baud = QString(argv[i + 1]);
             } else if ((0 == strncmp(argv[i], "-i", strlen(argv[i]))) || \
                        (0 == strncmp(argv[i], "--interface", strlen(argv[i])))) {
-                if (0 == strncmp(argv[i + 1], "jtag", strlen(argv[i + 1]))) {
-                    interface = TARGET_INTERFACE_JTAG;
-                } else if (0 == strncmp(argv[i + 1], "cjtag", strlen(argv[i + 1]))) {
-                    interface = TARGET_INTERFACE_CJTAG;
-                }
+                interface = QString(argv[i + 1]);
             } else {
                 qDebug() << "These are common Nuclei Dlink GDB Server commands used in various situations:" << Qt::endl;
                 qDebug() << "    command        parameter        example   example";
@@ -59,10 +55,11 @@ Transmit::Transmit(int argc, char *argv[])
         }
         qDebug() << "Nuclei Dlink GDB Server " << version << "Command Line Version" << Qt::endl;
         gdb_server->server_port = port.toUShort(nullptr, 10);
+        gdb_server->interface = interface;
         gdb_server->ServerInit();
+
         rv_target->target_serial_name = serial;
         rv_target->target_serial_baud = baud.toInt(nullptr, 10);
-        rv_target->target_interface = interface;
         rv_target->TargetInit();
     }
 }
@@ -90,14 +87,11 @@ void Transmit::run()
 void Transmit::user_connect(QString p, QString s, QString b, QString i)
 {
     gdb_server->server_port = p.toUShort(nullptr, 10);
+    gdb_server->interface = i;
     gdb_server->ServerInit();
+
     rv_target->target_serial_name = s;
     rv_target->target_serial_baud = b.toInt(nullptr, 10);
-    if ("jtag" == i) {
-        rv_target->target_interface = TARGET_INTERFACE_JTAG;
-    } else {
-        rv_target->target_interface = TARGET_INTERFACE_CJTAG;
-    }
     rv_target->TargetInit();
 }
 

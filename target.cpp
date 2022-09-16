@@ -30,11 +30,14 @@ void Target::TargetInit()
 
 void Target::TargetSerialReadyRead()
 {
-    emit TargetToServer(target_serial_port->readAll());
+    target_msg.append(target_serial_port->readAll());
+    if ((target_msg.contains('$')) && (target_msg.contains('#'))) {
+        emit TargetToServer(target_msg);
+        target_msg.clear();
+    }
 }
 
 void Target::TargetWrite(QByteArray msg)
 {
-    qDebug() << "S->T:" << msg;
     target_serial_port->write(msg);
 }
