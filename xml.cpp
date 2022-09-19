@@ -19,11 +19,13 @@ void Xml::GetInitXml(Misa* misa, quint64 vlenb)
     }
     char temp[1024];
     foreach (QByteArray feature, features) {
+        /* feature_fpu need core support f/d */
         if (feature_fpu == feature) {
             if (!(misa->f | misa->d)) {
                 continue;
             }
         }
+        /* feature_vector need core support v */
         if (feature_vector == feature) {
             if (!misa->v) {
                 continue;
@@ -32,9 +34,11 @@ void Xml::GetInitXml(Misa* misa, quint64 vlenb)
         sprintf(temp, "<feature name=\"%s\">", feature.constData());
         xml.append(temp);
         foreach (reg_t reg, regs) {
+            /* ingnore other feature */
             if (feature != reg.feature) {
                 continue;
             }
+            /* feature_cpu register width depend on mxl */
             if (feature_cpu == reg.feature) {
                 if (1 == misa->mxl) {
                     reg.bitsize = 32;
@@ -44,6 +48,7 @@ void Xml::GetInitXml(Misa* misa, quint64 vlenb)
                     continue;
                 }
             }
+            /* feature_fpu register width depend on d/f */
             if (feature_fpu == reg.feature) {
                 if (misa->d) {
                     reg.bitsize = 64;
@@ -53,6 +58,7 @@ void Xml::GetInitXml(Misa* misa, quint64 vlenb)
                     continue;
                 }
             }
+            /* feature_csr register width depend on mxl */
             if (feature_csr == reg.feature) {
                 if (1 == misa->mxl) {
                     reg.bitsize = 32;
@@ -62,6 +68,7 @@ void Xml::GetInitXml(Misa* misa, quint64 vlenb)
                     continue;
                 }
             }
+            /* feature_csr register width depend on vlenb */
             if (feature_vector == reg.feature) {
                 reg.bitsize = vlenb * 8;
             }
