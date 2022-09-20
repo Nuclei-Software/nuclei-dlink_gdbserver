@@ -33,7 +33,7 @@ void Server::ServerSocketWrite(QByteArray msg)
 {
     QByteArray send;
     quint8 checksum = 0;
-    char checksum_p[2];
+    char checksum_p[3];
     if (noack_mode) {
         send.append('$');
     } else {
@@ -46,7 +46,7 @@ void Server::ServerSocketWrite(QByteArray msg)
         checksum += var;
     }
     checksum &= 0xff;
-    sprintf(checksum_p, "%x", checksum);
+    sprintf(checksum_p, "%02x", checksum);
     send.append(checksum_p);
     qDebug() << "->S:" << send;
     server_socket->write(send);
@@ -94,7 +94,7 @@ void Server::ServerTargetWrite(QByteArray msg)
 {
     QByteArray send;
     quint8 checksum = 0;
-    char checksum_p[2];
+    char checksum_p[3];
     if (noack_mode) {
         send.append('$');
     } else {
@@ -107,7 +107,7 @@ void Server::ServerTargetWrite(QByteArray msg)
         checksum += var;
     }
     checksum &= 0xFF;
-    sprintf(checksum_p, "%x", checksum);
+    sprintf(checksum_p, "%02x", checksum);
     send.append(checksum_p);
     qDebug() << "->T:" << send;
     emit ServerToTarget(send);
