@@ -32,7 +32,11 @@ void Target::TargetSerialReadyRead()
 {
     target_msg.append(target_serial_port->readAll());
     if ((target_msg.contains('$')) && (target_msg.contains('#'))) {
-        emit TargetToServer(target_msg);
+        foreach (QByteArray msg, target_msg.split('|')) {
+            if ((msg.contains('$')) && (msg.contains('#'))) {
+                emit TargetToServer(msg);
+            }
+        }
         target_msg.clear();
     }
 }

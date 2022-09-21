@@ -1,20 +1,20 @@
-#include "xml.h"
+#include "regxml.h"
 
-Xml::Xml(QObject *parent)
+RegXml::RegXml(QObject *parent)
     : QObject{parent}
 {
 }
 
-void Xml::GetInitXml(Misa* misa, quint64 vlenb)
+void RegXml::InitRegXml(Misa* misa, quint64 vlenb)
 {
-    xml.clear();
-    xml.append("<?xml version=\"1.0\"?>");
-    xml.append("<!DOCTYPE target SYSTEM \"gdb-target.dtd\">");
-    xml.append("<target version=\"1.0\">");
+    regxml.clear();
+    regxml.append("<?xml version=\"1.0\"?>");
+    regxml.append("<!DOCTYPE target SYSTEM \"gdb-target.dtd\">");
+    regxml.append("<target version=\"1.0\">");
     if (1 == misa->mxl) {
-        xml.append("<architecture>riscv:rv32</architecture>");
+        regxml.append("<architecture>riscv:rv32</architecture>");
     } else if (2 == misa->mxl) {
-        xml.append("<architecture>riscv:rv64</architecture>");
+        regxml.append("<architecture>riscv:rv64</architecture>");
     } else {
     }
     char temp[1024];
@@ -32,7 +32,23 @@ void Xml::GetInitXml(Misa* misa, quint64 vlenb)
             }
         }
         sprintf(temp, "<feature name=\"%s\">", feature.constData());
-        xml.append(temp);
+        regxml.append(temp);
+
+        if (feature_vector == feature) {
+            regxml.append("<vector id=\"bytes\" type=\"uint8\" count=\"16\"/>");
+            regxml.append("<vector id=\"shorts\" type=\"uint16\" count=\"8\"/>");
+            regxml.append("<vector id=\"words\" type=\"uint32\" count=\"4\"/>");
+            regxml.append("<vector id=\"longs\" type=\"uint64\" count=\"2\"/>");
+            regxml.append("<vector id=\"quads\" type=\"uint128\" count=\"1\"/>");
+            regxml.append("<union id=\"riscv_vector\">");
+            regxml.append("<field name=\"b\" type=\"bytes\"/>");
+            regxml.append("<field name=\"s\" type=\"shorts\"/>");
+            regxml.append("<field name=\"w\" type=\"words\"/>");
+            regxml.append("<field name=\"l\" type=\"longs\"/>");
+            regxml.append("<field name=\"q\" type=\"quads\"/>");
+            regxml.append("</union>");
+        }
+
         foreach (reg_t reg, regs) {
             /* ingnore other feature */
             if (feature != reg.feature) {
@@ -71,34 +87,35 @@ void Xml::GetInitXml(Misa* misa, quint64 vlenb)
             /* feature_csr register width depend on vlenb */
             if (feature_vector == reg.feature) {
                 reg.bitsize = vlenb * 8;
+                reg.type = "riscv_vector";
             }
             sprintf(temp, "<reg name=\"%s\" ", reg.name.constData());
-            xml.append(temp);
+            regxml.append(temp);
             sprintf(temp, "bitsize=\"%d\" ", reg.bitsize);
-            xml.append(temp);
+            regxml.append(temp);
             sprintf(temp, "regnum=\"%d\" ", reg.regnum);
-            xml.append(temp);
+            regxml.append(temp);
             if (reg.save_restore) {
-                xml.append("save-restore=\"yes\" ");
+                regxml.append("save-restore=\"yes\" ");
             } else {
-                xml.append("save-restore=\"no\" ");
+                regxml.append("save-restore=\"no\" ");
             }
             sprintf(temp, "type=\"%s\" ", reg.type.constData());
-            xml.append(temp);
+            regxml.append(temp);
             sprintf(temp, "group=\"%s\"/>", reg.group.constData());
-            xml.append(temp);
+            regxml.append(temp);
         }
-        xml.append("</feature>");
+        regxml.append("</feature>");
     }
-    xml.append("</target>");
+    regxml.append("</target>");
 }
 
-quint32 Xml::GetXmlLen(void)
+quint32 RegXml::GetRegXmlLen(void)
 {
-    return xml.size();
+    return regxml.size();
 }
 
-QByteArray Xml::GetXml(quint32 addr)
+QByteArray RegXml::GetRegXml(quint32 addr)
 {
-    return &xml[addr];
+    return &regxml[addr];
 }

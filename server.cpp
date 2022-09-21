@@ -5,7 +5,8 @@ Server::Server(QObject *parent) : QObject(parent)
     server_tcp = new QTcpServer;
     server_socket = new QTcpSocket;
     misa = new Misa;
-    xml = new Xml;
+    regxml = new RegXml;
+    memxml = new MemXml;
 }
 
 Server::~Server()
@@ -15,7 +16,8 @@ Server::~Server()
     delete server_tcp;
     delete server_socket;
     delete misa;
-    delete xml;
+    delete regxml;
+    delete memxml;
 }
 
 void Server::ServerInit()
@@ -58,22 +60,49 @@ bool Server::ServerSocketCmd(QByteArray msg)
 
     qDebug() << "S->:" << msg;
     switch (msg[0]) {
-    case 'q':
-        if (strncmp(msg.constData(), "qXfer:features:read:target.xml:0,", 33) == 0) {
-            sscanf(msg.constData(), "qXfer:features:read:target.xml:%x,%x", &target_xml_addr, &target_xml_len);
-            ServerTargetWrite("+:read:misa:vlenb;");
+    case 'v':
+        if (strncmp(msg.constData(), "vMustReplyEmpty", 15) == 0) {
+            ServerSocketWrite(send);
             return true;
-        } else if (strncmp(msg.constData(), "qXfer:features:read:target.xml:", 31) == 0) {
-            sscanf(msg.constData(), "qXfer:features:read:target.xml:%x,%x", &target_xml_addr, &target_xml_len);
+        }
+        break;
+    case 'q':
+        if (strncmp(msg.constData(), "qSupported:", 11) == 0) {
+            send.append("PacketSize=405;"
+                        "QStartNoAckMode+;"
+                        "qXfer:features:read+;"
+                        "qXfer:memory-map:read+;"
+                        "swbreak+;"
+                        "hwbreak+;");
+            ServerSocketWrite(send);
+            ServerTargetWrite("+:set:connect;");
+            ServerTargetWrite("+:read:misa;");
+            ServerTargetWrite("+:read:vlenb;");
+            return true;
+        } else if (strncmp(msg.constData(), "qXfer:memory-map:read::", 23) == 0) {
+            sscanf(msg.constData(), "qXfer:memory-map:read::%x,%x", &target_memxml_addr, &target_memxml_len);
             quint32 xml_len;
-            xml_len = xml->GetXmlLen();
-            if (target_xml_len >= (xml_len - target_xml_addr)) {
-                target_xml_len = xml_len - target_xml_addr;
+            xml_len = memxml->GetMemXmlLen();
+            if (target_memxml_len >= (xml_len - target_memxml_addr)) {
+                target_memxml_len = xml_len - target_memxml_addr;
                 send.append('l');
             } else {
                 send.append('m');
             }
-            send.append(xml->GetXml(target_xml_addr).constData(), target_xml_len);
+            send.append(memxml->GetMemXml(target_memxml_addr).constData(), target_memxml_len);
+            ServerSocketWrite(send);
+            return true;
+        } else if (strncmp(msg.constData(), "qXfer:features:read:target.xml:", 31) == 0) {
+            sscanf(msg.constData(), "qXfer:features:read:target.xml:%x,%x", &target_regxml_addr, &target_regxml_len);
+            quint32 xml_len;
+            xml_len = regxml->GetRegXmlLen();
+            if (target_regxml_len >= (xml_len - target_regxml_addr)) {
+                target_regxml_len = xml_len - target_regxml_addr;
+                send.append('l');
+            } else {
+                send.append('m');
+            }
+            send.append(regxml->GetRegXml(target_regxml_addr).constData(), target_regxml_len);
             ServerSocketWrite(send);
             return true;
         }
@@ -115,25 +144,17 @@ void Server::ServerTargetWrite(QByteArray msg)
 
 bool Server::ServerTargetCmd(QByteArray msg)
 {
-    QByteArray send;
-
     qDebug() << "T->:" << msg;
     switch (msg[2]) {
     case 'r':
-        if (strncmp(msg.constData(), "-:read:misa:vlenb:", 12) == 0) {
-            sscanf(msg.constData(), "-:read:misa:vlenb:%08x:%016llx;", &target_misa, &target_vlenb);
+        if (strncmp(msg.constData(), "-:read:misa:", 12) == 0) {
+            sscanf(msg.constData(), "-:read:misa:%08x;", &target_misa);
             misa->MisaInit(target_misa);
-            xml->GetInitXml(misa, target_vlenb);
-            quint32 xml_len;
-            xml_len = xml->GetXmlLen();
-            if (target_xml_len >= (xml_len - target_xml_addr)) {
-                target_xml_len = xml_len - target_xml_addr;
-                send.append('l');
-            } else {
-                send.append('m');
-            }
-            send.append(xml->GetXml(target_xml_addr).constData(), target_xml_len);
-            ServerSocketWrite(send);
+            memxml->InitMemXml(misa);
+            return true;
+        } else if (strncmp(msg.constData(), "-:read:vlenb:", 13) == 0) {
+            sscanf(msg.constData(), "-:read:vlenb:%016llx;", &target_vlenb);
+            regxml->InitRegXml(misa, target_vlenb);
             return true;
         }
         break;

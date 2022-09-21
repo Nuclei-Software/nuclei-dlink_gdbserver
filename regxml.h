@@ -1,20 +1,20 @@
-#ifndef XML_H
-#define XML_H
+#ifndef REGXML_H
+#define REGXML_H
 
 #include <QObject>
 #include "misa.h"
 
-class Xml : public QObject
+class RegXml : public QObject
 {
     Q_OBJECT
 public:
-    explicit Xml(QObject *parent = nullptr);
-    void GetInitXml(Misa* misa, quint64 vlenb);
-    quint32 GetXmlLen(void);
-    QByteArray GetXml(quint32 addr);
+    explicit RegXml(QObject *parent = nullptr);
+    void InitRegXml(Misa* misa, quint64 vlenb);
+    quint32 GetRegXmlLen(void);
+    QByteArray GetRegXml(quint32 addr);
 
 private:
-    QByteArray xml;
+    QByteArray regxml;
 
     QByteArray feature_cpu = {"org.gnu.gdb.riscv.cpu"};
     QByteArray feature_fpu = {"org.gnu.gdb.riscv.fpu"};
@@ -581,6 +581,8 @@ private:
         {"mcfg_info",       32,        65+0xfc2,   false,          "int",    "csr",        feature_csr},
         {"mtlbcfg_info",    32,        65+0xfc3,   false,          "int",    "csr",        feature_csr},
         /* name             bitsize    regnum      save-restore    type      group         feature */
+        {"priv",            32,        4161,       false,          "int",    "general",    feature_cpu},
+        /* name             bitsize    regnum      save-restore    type      group         feature */
         {"v0",              32,        4162,       false,          "int",    "vector",     feature_vector},
         {"v1",              32,        4163,       false,          "int",    "vector",     feature_vector},
         {"v2",              32,        4164,       false,          "int",    "vector",     feature_vector},
@@ -619,4 +621,4 @@ signals:
 
 };
 
-#endif // XML_H
+#endif // REGXML_H

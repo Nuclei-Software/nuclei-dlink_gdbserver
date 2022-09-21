@@ -8,7 +8,8 @@
 #include <QHostAddress>
 #include <QQueue>
 #include "misa.h"
-#include "xml.h"
+#include "regxml.h"
+#include "memxml.h"
 
 class Server : public QObject
 {
@@ -34,10 +35,14 @@ private:
     QByteArray server_msg;
 
     Misa* misa;
-    Xml* xml;
+    RegXml* regxml;
+    MemXml* memxml;
+
     bool noack_mode;
-    quint32 target_xml_addr;
-    quint32 target_xml_len;
+    quint32 target_regxml_addr;
+    quint32 target_regxml_len;
+    quint32 target_memxml_addr;
+    quint32 target_memxml_len;
     quint32 target_misa;
     quint64 target_vlenb;
 

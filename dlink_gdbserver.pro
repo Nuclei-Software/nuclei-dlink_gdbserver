@@ -11,19 +11,21 @@ CONFIG += c++17
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
+    memxml.cpp \
     misa.cpp \
+    regxml.cpp \
     server.cpp \
     target.cpp \
-    transmit.cpp \
-    xml.cpp
+    transmit.cpp
 
 HEADERS += \
     mainwindow.h \
+    memxml.h \
     misa.h \
+    regxml.h \
     server.h \
     target.h \
-    transmit.h \
-    xml.h
+    transmit.h
 
 FORMS += \
     mainwindow.ui
