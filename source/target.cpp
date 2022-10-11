@@ -1,14 +1,10 @@
-#include "target.h"
+#include "../include/target.h"
+
+QQueue<QByteArray> target_rsp_queue;
 
 Target::Target(QObject *parent) : QObject(parent)
 {
     target_serial_port = new QSerialPort;
-}
-
-Target::~Target()
-{
-    target_serial_port->close();
-    delete  target_serial_port;
 }
 
 void Target::TargetInit()
@@ -20,9 +16,9 @@ void Target::TargetInit()
     target_serial_port->setStopBits(QSerialPort::OneStop);
     target_serial_port->setFlowControl(QSerialPort::NoFlowControl);
     if (target_serial_port->open(QIODevice::ReadWrite)) {
-        qDebug() << "Open:" << target_serial_name << Qt::endl;
+        qDebug() << "Open:" << target_serial_name;
     } else {
-        qDebug() << "Fail to open:" << target_serial_name << Qt::endl;
+        qDebug() << "Fail to open:" << target_serial_name;
         return;
     }
     connect(target_serial_port, SIGNAL(readyRead()), this, SLOT(TargetSerialReadyRead()));
@@ -31,10 +27,11 @@ void Target::TargetInit()
 void Target::TargetSerialReadyRead()
 {
     target_msg.append(target_serial_port->readAll());
-    if ((target_msg.contains('$')) && (target_msg.contains('#'))) {
+    if ((target_msg.contains('$')) && (target_msg.contains('#')) && (target_msg.contains('|'))) {
         foreach (QByteArray msg, target_msg.split('|')) {
             if ((msg.contains('$')) && (msg.contains('#'))) {
-                emit TargetToServer(msg);
+                qDebug() << "T->:" << msg;
+                target_rsp_queue.enqueue(msg);
             }
         }
         target_msg.clear();
@@ -43,5 +40,6 @@ void Target::TargetSerialReadyRead()
 
 void Target::TargetWrite(QByteArray msg)
 {
+    qDebug() << "->T:" << msg;
     target_serial_port->write(msg);
 }

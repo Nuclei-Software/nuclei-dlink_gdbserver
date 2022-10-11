@@ -1,4 +1,4 @@
-#include "misa.h"
+#include "../include/misa.h"
 
 Misa::Misa(QObject *parent)
     : QObject{parent}

@@ -2,7 +2,7 @@
 #define REGXML_H
 
 #include <QObject>
-#include "misa.h"
+#include "../include/misa.h"
 
 class RegXml : public QObject
 {

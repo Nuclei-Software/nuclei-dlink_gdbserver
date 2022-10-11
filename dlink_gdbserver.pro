@@ -10,25 +10,31 @@ CONFIG += c++17
 
 SOURCES += \
     main.cpp \
-    mainwindow.cpp \
-    memxml.cpp \
-    misa.cpp \
-    regxml.cpp \
-    server.cpp \
-    target.cpp \
-    transmit.cpp
+    source/application.cpp \
+    source/logout.cpp \
+    source/mainwindow.cpp \
+    source/memxml.cpp \
+    source/misa.cpp \
+    source/regxml.cpp \
+    source/server.cpp \
+    source/target.cpp \
+    source/transmit.cpp \
+    source/algorithm.cpp
 
 HEADERS += \
-    mainwindow.h \
-    memxml.h \
-    misa.h \
-    regxml.h \
-    server.h \
-    target.h \
-    transmit.h
+    include/algorithm.h \
+    include/application.h \
+    include/logout.h \
+    include/mainwindow.h \
+    include/memxml.h \
+    include/misa.h \
+    include/regxml.h \
+    include/server.h \
+    include/target.h \
+    include/transmit.h
 
 FORMS += \
-    mainwindow.ui
+    forms/mainwindow.ui
 
 RC_ICONS = logo.ico
 

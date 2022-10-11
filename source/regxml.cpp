@@ -1,4 +1,4 @@
-#include "regxml.h"
+#include "../include/regxml.h"
 
 RegXml::RegXml(QObject *parent)
     : QObject{parent}
@@ -117,5 +117,5 @@ quint32 RegXml::GetRegXmlLen(void)
 
 QByteArray RegXml::GetRegXml(quint32 addr)
 {
-    return &regxml[addr];
+    return regxml.mid(addr);
 }

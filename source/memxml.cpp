@@ -1,4 +1,4 @@
-#include "memxml.h"
+#include "../include/memxml.h"
 
 MemXml::MemXml(QObject *parent)
     : QObject{parent}
@@ -6,8 +6,14 @@ MemXml::MemXml(QObject *parent)
 
 }
 
+void MemXml::AddFlash(Algorithm::flash_t flash)
+{
+    flashs.append(flash);
+}
+
 void MemXml::InitMemXml(Misa* misa)
 {
+    quint64 max_addr;
     if (1 == misa->mxl) {
         quint32 zero = 0;
         max_addr = ~zero;
@@ -20,22 +26,22 @@ void MemXml::InitMemXml(Misa* misa)
     quint64 mem_addr = 0;
     memxml.clear();
     memxml.append("<memory-map>");
-    foreach (flash_t flash, flashs) {
-        if (mem_addr < flash.start) {
+    foreach (Algorithm::flash_t flash, flashs) {
+        if (mem_addr < flash.xip_base) {
             sprintf(temp, "<memory type=\"%s\" start=\"0x%llx\" length=\"0x%llx\"/>",
                     "ram",
                     mem_addr,
-                    flash.start);
+                    flash.xip_base);
             memxml.append(temp);
-            mem_addr += flash.start;
+            mem_addr += flash.xip_base;
         }
         sprintf(temp, "<memory type=\"%s\" start=\"0x%llx\" length=\"0x%llx\"><property name=\"blocksize\">0x%llx</property></memory>",
                 "flash",
-                flash.start,
-                flash.length,
-                flash.blocksize);
+                flash.xip_base,
+                flash.xip_size,
+                flash.block_size);
         memxml.append(temp);
-        mem_addr += flash.length;
+        mem_addr += flash.xip_size;
     }
     sprintf(temp, "<memory type=\"%s\" start=\"0x%llx\" length=\"0x%llx\"/>",
             "ram",
@@ -52,5 +58,5 @@ quint32 MemXml::GetMemXmlLen(void)
 
 QByteArray MemXml::GetMemXml(quint32 addr)
 {
-    return &memxml[addr];
+    return memxml.mid(addr);
 }
