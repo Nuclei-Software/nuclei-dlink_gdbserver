@@ -3,8 +3,6 @@
 QString version = "V1.0.0";
 
 extern QQueue<QByteArray> server_cmd_queue;
-QQueue<QByteArray> server_rsp_queue;
-QQueue<QByteArray> target_cmd_queue;
 extern QQueue<QByteArray> target_rsp_queue;
 
 /*==== Loader ====*/
@@ -33,6 +31,66 @@ static QByteArray bin_decode(QByteArray xbin)
     return bin;
 }
 
+static void bin_to_hex(QByteArray data_bin, char *hex, uint32_t nbyte)
+{
+    uint32_t i;
+    uint8_t hi;
+    uint8_t lo;
+    char *bin = data_bin.data();
+
+    for(i = 0; i < nbyte; i++) {
+        hi = (*bin >> 4) & 0xf;
+        lo = *bin & 0xf;
+
+        if (hi < 10) {
+            *hex = '0' + hi;
+        } else {
+            *hex = 'a' + hi - 10;
+        }
+
+        hex++;
+
+        if (lo < 10) {
+            *hex = '0' + lo;
+        } else {
+            *hex = 'a' + lo - 10;
+        }
+
+        hex++;
+        bin++;
+    }
+}
+
+static QByteArray hex_to_bin(QByteArray data_hex, uint32_t nbyte)
+{
+    uint32_t i;
+    uint8_t hi, lo;
+    char *hex = data_hex.data();
+    char bin;
+    QByteArray data_bin;
+    for(i = 0; i < nbyte; i++) {
+        if (hex[i * 2] <= '9') {
+            hi = hex[i * 2] - '0';
+        } else if (hex[i * 2] <= 'F') {
+            hi = hex[i * 2] - 'A' + 10;
+        } else {
+            hi = hex[i * 2] - 'a' + 10;
+        }
+
+        if (hex[i * 2 + 1] <= '9') {
+            lo = hex[i * 2 + 1] - '0';
+        } else if (hex[i * 2 + 1] <= 'F') {
+            lo = hex[i * 2 + 1] - 'A' + 10;
+        } else {
+            lo = hex[i * 2 + 1] - 'a' + 10;
+        }
+
+        bin = (hi << 4) | lo;
+        data_bin.append(bin);
+    }
+    return data_bin;
+}
+
 Transmit::Transmit()
 {
     misa = new Misa;
@@ -49,7 +107,7 @@ void Transmit::TransmitInit()
 
     noack_mode = false;
     server_reply_flag = true;
-    packet_size = 0x400;
+    packet_size = 0x200;
 
     qDebug() << "Nuclei Dlink GDB Server " << version << "Command Line Version";
 }
@@ -80,22 +138,23 @@ QByteArray Transmit::ReadTargetMemory(quint32 memory_addr, quint32 length)
 {
     quint32 data_size = packet_size;
     quint32 data_addr = 0;
-    QByteArray send, read;
+    QByteArray send, read, bin;
+    char temp[1024];
     do {
-        send.append("m");
-        send.append(data_addr + memory_addr);
-        send.append(',');
         if (length < data_size) {
             data_size = length;
         }
-        send.append(data_size);
+        sprintf(temp, "m%x,%x", data_addr + memory_addr, data_size);
+        send.append(temp);
         data_addr += data_size;
         length -= data_size;
         TransmitTargetCmd(send);
+        send.clear();
         while (target_rsp_queue.empty());
-        read.append(TransmitTargetRsp(target_rsp_queue.dequeue()));
+        read = TransmitTargetRsp(target_rsp_queue.dequeue());
+        bin.append(hex_to_bin(read, data_size));
     } while (length);
-    return read;
+    return bin;
 }
 
 void Transmit::WriteTargetMemory(quint32 memory_addr, QByteArray data, quint32 length)
@@ -103,19 +162,21 @@ void Transmit::WriteTargetMemory(quint32 memory_addr, QByteArray data, quint32 l
     quint32 data_size = packet_size;
     quint32 data_addr = 0;
     QByteArray send;
+    char temp[1024];
     do {
-        send.append("M");
-        send.append(memory_addr + data_addr);
-        send.append(',');
         if (length < data_size) {
             data_size = length;
         }
-        send.append(data_size);
-        send.append(':');
-        send.append(data.mid(data_addr, data_size));
+        sprintf(temp, "M%x,%x:", data_addr + memory_addr, data_size);
+        send.append(temp);
+        bin_to_hex(data.mid(data_addr), temp, data_size);
+        for (quint32 i = 0; i < (data_size * 2); i++) {
+            send.append(temp[i]);
+        }
         data_addr += data_size;
         length -= data_size;
         TransmitTargetCmd(send);
+        send.clear();
         while (target_rsp_queue.empty());
         target_rsp_queue.dequeue();
     } while(length);
@@ -124,38 +185,14 @@ void Transmit::WriteTargetMemory(quint32 memory_addr, QByteArray data, quint32 l
 void Transmit::ExecuteAlgorithm(quint32 cs, quint32 addr, quint32 count, QByteArray buffer)
 {
     QByteArray send;
-    quint32 loader_addr, buffer_addr;
     quint32 params1, params2, params3;
-    //backup workarea
-    if (workarea.backup) {
-        workarea.mem.append(ReadTargetMemory(workarea.addr, workarea.size));
-    }
-    //download flash loader
-    QFile loader(flash.loader_path);
-    if (loader.exists()) {
-        loader.open(QIODevice::ReadOnly);
-        QByteArray bin = loader.readAll();
-        loader_addr = workarea.addr;
-        WriteTargetMemory(loader_addr, bin, bin.size());
-        if (WRITE_CMD == cs) {
-            //download write data
-            buffer_addr = loader_addr + bin.size();
-            WriteTargetMemory(buffer_addr, buffer, buffer.size());
-        }
-    } else {
-        loader_addr = 0;
-        buffer_addr = 0;
-        qDebug() << flash.loader_path << " not found.";
+    char temp[1024];
+
+    if (WRITE_CMD == cs) {
+        //download write data
+        WriteTargetMemory(buffer_addr, buffer, buffer.size());
     }
     //execute algorithm
-    send.clear();
-    send.append("+:algorithm:");
-    send.append(loader_addr);
-    send.append(',');
-    send.append(cs);
-    send.append(',');
-    send.append(flash.spi_base);
-    send.append(',');
     switch (cs) {
     case PROBE_CMD:
         params1 = 0;
@@ -178,19 +215,17 @@ void Transmit::ExecuteAlgorithm(quint32 cs, quint32 addr, quint32 count, QByteAr
         params3 = 0;
         break;
     }
-    send.append(params1);
-    send.append(',');
-    send.append(params2);
-    send.append(',');
-    send.append(params3);
-    send.append(';');
+    sprintf(temp, "+:algorithm:%x,%x,%llx,%x,%x,%x;", loader_addr, cs, flash.spi_base, params1, params2, params3);
+    send.clear();
+    send.append(temp);
     TransmitTargetCmd(send);
     while (target_rsp_queue.empty());
     target_rsp_queue.dequeue();
-    //restore workarea
-    if (workarea.backup) {
-        WriteTargetMemory(workarea.addr, workarea.mem, workarea.size);
-    }
+    send.clear();
+    send.append('c');
+    TransmitTargetCmd(send);
+    while (target_rsp_queue.empty());
+    target_rsp_queue.dequeue();
 }
 
 QByteArray Transmit::TransmitTargetRsp(QByteArray msg)
@@ -214,13 +249,7 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
         break;
     case 'q':
         if (strncmp(msg.constData(), "qSupported:", 11) == 0) {
-            send.append("PacketSize=405;"
-                        "QStartNoAckMode+;"
-                        "qXfer:features:read+;"
-                        "qXfer:memory-map:read+;"
-                        "swbreak+;"
-                        "hwbreak+;");
-            TransmitServerRsp(send);
+            noack_mode = false;
             //Set interface and connect target
             send.clear();
             send.append("+:set:interface:");
@@ -234,7 +263,6 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
             } else {
                 qDebug() << "set interface and connect fail.";
             }
-
             //Get target MISA CSR register
             send.clear();
             send.append("+:read:misa;");
@@ -250,7 +278,6 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
             } else {
                 qDebug() << "read misa fail.";
             }
-
             //Get target VLENB CSR register
             send.clear();
             send.append("+:read:vlenb;");
@@ -265,6 +292,15 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
             } else {
                 qDebug() << "read vlenb fail.";
             }
+            //deal qSupported
+            send.clear();
+            send.append("PacketSize=405;"
+                        "QStartNoAckMode+;"
+                        "qXfer:features:read+;"
+                        "qXfer:memory-map:read+;"
+                        "swbreak+;"
+                        "hwbreak+;");
+            TransmitServerRsp(send);
         } else if (strncmp(msg.constData(), "qXfer:memory-map:read::", 23) == 0) {
             quint32 target_memxml_addr;
             quint32 target_memxml_len;
@@ -340,8 +376,8 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
         /* Continue at addr, which is the address to resume. */
         /* If addr is omitted, resume at current address. */
         TransmitTargetCmd(msg);
-        while (target_rsp_queue.empty());
-        TransmitServerRsp(target_rsp_queue.dequeue());
+        send.append("OK");
+        TransmitServerRsp(send);
         break;
     case 'm':/* `m addr,length` */
         /* Read length addressable memory units starting at address addr. */
@@ -397,22 +433,46 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
         if (strncmp(msg.constData(), "vMustReplyEmpty", 15) == 0) {
             TransmitServerRsp(send);
         } else if (strncmp(msg.constData(), "vFlashErase:", 12) == 0) {
+            //backup workarea
+            if (workarea.backup) {
+                workarea.mem = ReadTargetMemory(workarea.addr, workarea.size);
+            }
+            //download flash loader
+            QFile loader(flash.loader_path);
+            if (loader.exists()) {
+                loader.open(QIODevice::ReadOnly);
+                QByteArray bin = loader.readAll();
+                loader_addr = workarea.addr;
+                WriteTargetMemory(loader_addr, bin, bin.size());
+                buffer_addr = loader_addr + bin.size();
+            } else {
+                qDebug() << flash.loader_path << " not found.";
+            }
+            ExecuteAlgorithm(PROBE_CMD, 0, 0, NULL);
             quint64 target_erase_addr;
             quint64 target_erase_len;
             sscanf(msg.constData(), "vFlashErase:%llx,%llx", &target_erase_addr, &target_erase_len);
-            qDebug() << "Erase:" << target_erase_addr << ":" << target_erase_len;
+            qDebug() << "Erase:" << QString("%1").arg(target_erase_addr, 4, 16) << ":" << QString("%1").arg(target_erase_len, 4, 16);
             ExecuteAlgorithm(ERASE_CMD, target_erase_addr, target_erase_len, NULL);
+            send.append("OK");
+            TransmitServerRsp(send);
         } else if (strncmp(msg.constData(), "vFlashWrite:", 12) == 0) {
             quint64 target_write_addr;
             quint64 target_write_len;
             QByteArray target_write_data;
             sscanf(msg.constData(), "vFlashWrite:%llx:", &target_write_addr);
-            target_write_data = bin_decode(msg.mid(msg.lastIndexOf(':') + 1));
+            target_write_data = bin_decode(msg.mid(msg.indexOf(':', 15) + 1));
             target_write_len = target_write_data.size();
-            qDebug() << "Write:" << target_write_addr << ":" << target_write_len;
+            qDebug() << "Write:" << QString("%1").arg(target_write_addr, 4, 16) << ":" << QString("%1").arg(target_write_len, 4, 16);
             qDebug() << "Write data:" << target_write_data;
             ExecuteAlgorithm(WRITE_CMD, target_write_addr, target_write_len, target_write_data);
+            send.append("OK");
+            TransmitServerRsp(send);
         } else if (strncmp(msg.constData(), "vFlashDone", 10) == 0) {
+            //restore workarea
+            if (workarea.backup) {
+                WriteTargetMemory(workarea.addr, workarea.mem, workarea.size);
+            }
             send.append("OK");
             TransmitServerRsp(send);
         } else {
@@ -438,7 +498,8 @@ void Transmit::TransmitServerCmd(QByteArray msg)
 
 void Transmit::TransmitServerRsp(QByteArray msg)
 {
-    server_rsp_queue.enqueue(TransmitPackage(msg));
+    emit TransmitToServer(TransmitPackage(msg));
+    server_reply_flag = true;
 }
 
 void Transmit::run()
@@ -451,16 +512,15 @@ void Transmit::run()
         }
         if (server_reply_flag) {
             if (!server_cmd_queue.empty()) {
+                server_reply_flag = false;
                 msg = server_cmd_queue.dequeue();
                 current_command = msg;
                 TransmitServerCmd(msg);
-                server_reply_flag = false;
             }
         }
-        if (!server_rsp_queue.empty()) {
-            msg = server_rsp_queue.dequeue();
-            emit TransmitToServer(msg);
-            server_reply_flag = true;
+        if (!target_rsp_queue.empty()) {
+            msg = target_rsp_queue.dequeue();
+            emit TransmitToServer(TransmitPackage(msg));
         }
     }
 }

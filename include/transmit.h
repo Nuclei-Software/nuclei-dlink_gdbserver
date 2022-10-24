@@ -39,6 +39,8 @@ private:
     bool close_flag;
     bool noack_mode;
     quint32 packet_size;
+    quint32 loader_addr;
+    quint32 buffer_addr;
     Misa* misa;
     RegXml* regxml;
     MemXml* memxml;

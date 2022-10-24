@@ -31,7 +31,8 @@ void Target::TargetSerialReadyRead()
         foreach (QByteArray msg, target_msg.split('|')) {
             if ((msg.contains('$')) && (msg.contains('#'))) {
                 qDebug() << "T->:" << msg;
-                target_rsp_queue.enqueue(msg);
+                target_rsp_queue.enqueue(msg.mid(msg.indexOf('$') + 1,
+                                                 msg.indexOf('#') - msg.indexOf('$') - 1));
             }
         }
         target_msg.clear();
