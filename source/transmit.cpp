@@ -274,7 +274,7 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
                 sscanf(recv.constData(), "-:read:misa:%08x;", &target_misa);
                 misa->MisaInit(target_misa);
                 memxml->InitMemXml(misa);
-                qDebug() << "read misa:" << target_misa;
+                qDebug() << "read misa:" << QString("%1").arg(target_misa, 4, 16);
             } else {
                 qDebug() << "read misa fail.";
             }
@@ -288,7 +288,7 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
                 quint64 target_vlenb;
                 sscanf(recv.constData(), "-:read:vlenb:%016llx;", &target_vlenb);
                 regxml->InitRegXml(misa, target_vlenb);
-                qDebug() << "read vlenb:" << target_vlenb;
+                qDebug() << "read vlenb:" << QString("%1").arg(target_vlenb, 4, 16);
             } else {
                 qDebug() << "read vlenb fail.";
             }
