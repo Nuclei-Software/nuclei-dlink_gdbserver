@@ -27,6 +27,7 @@ void Target::TargetInit()
 void Target::TargetDeinit()
 {
     target_serial_port->close();
+    qDebug() << "Close:" << target_serial_name;
 }
 
 void Target::TargetSerialReadyRead()

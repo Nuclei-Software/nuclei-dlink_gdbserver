@@ -22,6 +22,7 @@ void Server::ServerInit()
 void Server::ServerDeinit()
 {
     server_tcp->close();
+    qDebug() << "Close:" << server_port;
 }
 
 void Server::ServerNewConnect()

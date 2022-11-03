@@ -119,4 +119,6 @@ void Application::ApplicationDisconnect()
     disconnect(transmit, 0, 0, 0);
     disconnect(target, 0, 0, 0);
     disconnect(server, 0, 0, 0);
+
+    qDebug() << "Disconnect";
 }
