@@ -19,6 +19,11 @@ void Server::ServerInit()
     connect(server_tcp, SIGNAL(newConnection()), this, SLOT(ServerNewConnect()));
 }
 
+void Server::ServerDeinit()
+{
+    server_tcp->close();
+}
+
 void Server::ServerNewConnect()
 {
     server_socket->disconnect();

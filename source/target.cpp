@@ -24,6 +24,11 @@ void Target::TargetInit()
     connect(target_serial_port, SIGNAL(readyRead()), this, SLOT(TargetSerialReadyRead()));
 }
 
+void Target::TargetDeinit()
+{
+    target_serial_port->close();
+}
+
 void Target::TargetSerialReadyRead()
 {
     target_msg.append(target_serial_port->readAll());

@@ -69,11 +69,16 @@ void MainWindow::on_toolButton_LoaderPath_clicked()
 
 void MainWindow::on_pushButton_Connect_clicked()
 {
-    if (QFile::exists(ui->lineEdit_LoaderPath->text())) {
-        ui->pushButton_Connect->setDisabled(true);
-        emit Connect(ui->lineEdit_LoaderPath->text());
+    if (QString::compare(ui->pushButton_Connect->text(), "Connect") == 0) {
+        if (QFile::exists(ui->lineEdit_LoaderPath->text())) {
+            ui->pushButton_Connect->setText("Disconnect");
+            emit Connect(ui->lineEdit_LoaderPath->text());
+        } else {
+            qDebug() << "Not found config file!";
+        }
     } else {
-        output_log("Not found config file!");
+        ui->pushButton_Connect->setText("Connect");
+        emit Disconnect();
     }
 }
 

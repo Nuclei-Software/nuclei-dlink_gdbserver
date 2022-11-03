@@ -26,6 +26,7 @@ private:
 
 public slots:
     void ApplicationConnect(QString cfg_path);
+    void ApplicationDisconnect();
 };
 
 #endif // APPLICATION_H

@@ -23,6 +23,7 @@ public:
 
 signals:
     void Connect(QString);
+    void Disconnect();
     void Close();
 
 private slots:

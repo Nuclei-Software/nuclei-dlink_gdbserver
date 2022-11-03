@@ -14,6 +14,7 @@ class Server : public QObject
 public:
     explicit Server(QObject *parent = nullptr);
     void ServerInit();
+    void ServerDeinit();
 
     quint16 server_port;
 

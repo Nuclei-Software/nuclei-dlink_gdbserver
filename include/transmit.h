@@ -17,6 +17,7 @@ class Transmit : public QThread
 public:
     Transmit();
     void TransmitInit();
+    void TransmitDeinit();
 
     QString interface;
     Algorithm::flash_t flash;

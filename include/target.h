@@ -12,6 +12,7 @@ class Target : public QObject
 public:
     explicit Target(QObject *parent = nullptr);
     void TargetInit();
+    void TargetDeinit();
 
     QString target_serial_name;
     qint32 target_serial_baud;

@@ -24,6 +24,7 @@ void Application::ApplicationInit(int argc, char *argv[])
         connect(mainwindow, SIGNAL(Close()), transmit, SLOT(TransmitClose()));
         connect(logout, SIGNAL(LogoutToUI(QString)), mainwindow, SLOT(output_log(QString)));
         connect(mainwindow, SIGNAL(Connect(QString)), this, SLOT(ApplicationConnect(QString)));
+        connect(mainwindow, SIGNAL(Disconnect()), this, SLOT(ApplicationDisconnect()));
         break;
     case 3://command line mode
         if (0 == strncmp(argv[2], "-f", 2)) {
@@ -107,4 +108,15 @@ void Application::ApplicationConnect(QString cfg_path)
     transmit->TransmitInit();
     target->TargetInit();
     server->ServerInit();
+}
+
+void Application::ApplicationDisconnect()
+{
+    transmit->TransmitDeinit();
+    target->TargetDeinit();
+    server->ServerDeinit();
+
+    disconnect(transmit, 0, 0, 0);
+    disconnect(target, 0, 0, 0);
+    disconnect(server, 0, 0, 0);
 }

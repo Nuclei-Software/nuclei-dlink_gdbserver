@@ -95,12 +95,13 @@ Transmit::Transmit()
 {
     misa = new Misa;
     regxml = new RegXml;
-    memxml = new MemXml;
-    algorithm = new Algorithm;
 }
 
 void Transmit::TransmitInit()
 {
+    memxml = new MemXml;
+    algorithm = new Algorithm;
+
     memxml->AddFlash(flash);
     algorithm->AddFlash(flash);
     algorithm->AddWorkarea(workarea);
@@ -110,6 +111,12 @@ void Transmit::TransmitInit()
     packet_size = 0x200;
 
     qDebug() << "Nuclei Dlink GDB Server " << version << "Command Line Version";
+}
+
+void Transmit::TransmitDeinit()
+{
+    delete memxml;
+    delete algorithm;
 }
 
 QByteArray Transmit::TransmitPackage(QByteArray msg)
