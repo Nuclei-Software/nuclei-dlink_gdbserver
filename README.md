@@ -1,6 +1,6 @@
 # Introduction
 
-![](img\dlink_gdbserver.png)
+![](img/dlink_gdbserver.png)
 
 # Qt In GUI Mode
 
@@ -10,11 +10,11 @@ qtcreator dlink_gdbserver.pro &
 
 ## Compile
 
-![](img\gui_compile.png)
+![](img/gui_compile.png)
 
 ## Run
 
-![](img\gui_run.png)
+![](img/gui_run.png)
 
 # Qt In Command Line Mode
 
@@ -39,5 +39,3 @@ cd build
 # Starting In Command Line Mode
 ./dlink_gdbserver -f ../dlink_gdbserver.cfg
 ```
-
-# 
