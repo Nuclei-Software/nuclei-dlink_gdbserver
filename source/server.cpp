@@ -21,13 +21,14 @@ void Server::ServerInit()
 
 void Server::ServerDeinit()
 {
+    disconnect(server_socket, 0, 0, 0);
+    disconnect(server_tcp, 0, 0, 0);
     server_tcp->close();
     qDebug() << "Close:" << server_port;
 }
 
 void Server::ServerNewConnect()
 {
-    server_socket->disconnect();
     server_socket = server_tcp->nextPendingConnection();
     connect(server_socket, SIGNAL(readyRead()), this, SLOT(ServerSocketRead()));
     connect(server_socket, SIGNAL(disconnected()), this, SLOT(ServerSocketDisconnect()));
@@ -49,6 +50,7 @@ void Server::ServerSocketRead()
 
 void Server::ServerSocketDisconnect()
 {
+    server_socket->disconnect();
     qDebug() << "Server socket disconnect:" << server_port;
 }
 
