@@ -19,7 +19,7 @@ public:
     void TransmitInit();
     void TransmitDeinit();
 
-    QString interface;
+    QString protocol;
     Algorithm::flash_t flash;
     Algorithm::workarea_t workarea;
 

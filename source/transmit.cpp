@@ -278,18 +278,18 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
     case 'q':
         if (strncmp(msg.constData(), "qSupported:", 11) == 0) {
             noack_mode = false;
-            //Set interface and connect target
+            //Set protocol and connect target
             send.clear();
-            send.append("+:set:interface:");
-            send.append(interface.toLatin1());
+            send.append("+:set:protocol:");
+            send.append(protocol.toLatin1());
             send.append(';');
             TransmitTargetCmd(send);
             if (WaitForTargetRsp()) {
                 recv = TransmitTargetRsp(target_rsp_queue.dequeue());
-                if (recv.contains("interface")) {
-                    qDebug() << "set interface and connect success.";
+                if (recv.contains("protocol")) {
+                    qDebug() << "set protocol and connect success.";
                 } else {
-                    qDebug() << "set interface and connect fail.";
+                    qDebug() << "set protocol and connect fail.";
                 }
             }
             //Get target MISA CSR register

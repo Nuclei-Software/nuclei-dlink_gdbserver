@@ -1,4 +1,5 @@
 #include "../include/application.h"
+#include <windows.h>
 
 Application::Application(QObject *parent)
     : QObject{parent}
@@ -26,8 +27,16 @@ void Application::ApplicationInit(int argc, char *argv[])
         connect(mainwindow, SIGNAL(Disconnect()), this, SLOT(ApplicationDisconnect()));
         break;
     case 3://command line mode
-        if (0 == strncmp(argv[2], "-f", 2)) {
-            ApplicationConnect(argv[3]);
+        if (0 == strncmp(argv[1], "-f", 2)) {
+            //windows add console
+            FreeConsole();
+            AllocConsole();
+            AttachConsole(GetCurrentProcessId());
+            freopen("CON", "w", stdout);
+            freopen("CON", "w", stderr);
+            freopen("CON", "r", stdin);
+            //start app
+            ApplicationConnect(argv[2]);
         }
         break;
     default://help message
@@ -67,7 +76,7 @@ void Application::ApplicationConnect(QString cfg_path)
             //transport command group
             if (0 == command[0].compare("transport")) {
                 if (0 == command[1].compare("select")) {
-                    transmit->interface = command[2];
+                    transmit->protocol = command[2];
                 }
             }
             //workarea command group
