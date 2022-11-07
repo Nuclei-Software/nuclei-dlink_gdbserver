@@ -10,7 +10,6 @@ Application::Application(QObject *parent)
     server = new Server;
 
     logout->start();
-    transmit->start();
 }
 
 void Application::ApplicationInit(int argc, char *argv[])
@@ -108,10 +107,13 @@ void Application::ApplicationConnect(QString cfg_path)
     transmit->TransmitInit();
     target->TargetInit();
     server->ServerInit();
+
+    transmit->start();
 }
 
 void Application::ApplicationDisconnect()
 {
+    transmit->TransmitClose();
     transmit->TransmitDeinit();
     target->TargetDeinit();
     server->ServerDeinit();

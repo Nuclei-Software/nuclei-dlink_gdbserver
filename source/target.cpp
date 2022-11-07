@@ -16,7 +16,7 @@ void Target::TargetInit()
     target_serial_port->setStopBits(QSerialPort::OneStop);
     target_serial_port->setFlowControl(QSerialPort::NoFlowControl);
     if (target_serial_port->open(QIODevice::ReadWrite)) {
-        qDebug() << "Open:" << target_serial_name;
+        qDebug() << "Open:" << target_serial_name << " baud:" << target_serial_baud;
     } else {
         qDebug() << "Fail to open:" << target_serial_name;
         return;

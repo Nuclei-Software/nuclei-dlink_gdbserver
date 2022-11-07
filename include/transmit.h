@@ -28,6 +28,7 @@ protected:
 
 private:
     QByteArray TransmitPackage(QByteArray msg);
+    bool WaitForTargetRsp();
     QByteArray ReadTargetMemory(quint32 memory_addr, quint32 length);
     void WriteTargetMemory(quint32 memory_addr, QByteArray data, quint32 length);
     void ExecuteAlgorithm(quint32 cs, quint32 addr, quint32 count, QByteArray buffer);

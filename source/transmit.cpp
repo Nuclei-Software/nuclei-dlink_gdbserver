@@ -110,6 +110,9 @@ void Transmit::TransmitInit()
     server_reply_flag = true;
     packet_size = 0x200;
 
+    server_cmd_queue.clear();
+    target_rsp_queue.clear();
+
     qDebug() << "Nuclei Dlink GDB Server " << version << "Command Line Version";
 }
 
@@ -141,6 +144,17 @@ QByteArray Transmit::TransmitPackage(QByteArray msg)
     return send;
 }
 
+bool Transmit::WaitForTargetRsp()
+{
+    while (target_rsp_queue.empty())
+    {
+        if (close_flag) {
+            return false;
+        }
+    }
+    return true;
+}
+
 QByteArray Transmit::ReadTargetMemory(quint32 memory_addr, quint32 length)
 {
     quint32 data_size = packet_size;
@@ -157,9 +171,12 @@ QByteArray Transmit::ReadTargetMemory(quint32 memory_addr, quint32 length)
         length -= data_size;
         TransmitTargetCmd(send);
         send.clear();
-        while (target_rsp_queue.empty());
-        read = TransmitTargetRsp(target_rsp_queue.dequeue());
-        bin.append(hex_to_bin(read, data_size));
+        if (WaitForTargetRsp()) {
+            read = TransmitTargetRsp(target_rsp_queue.dequeue());
+            bin.append(hex_to_bin(read, data_size));
+        } else {
+            return NULL;
+        }
     } while (length);
     return bin;
 }
@@ -184,8 +201,9 @@ void Transmit::WriteTargetMemory(quint32 memory_addr, QByteArray data, quint32 l
         length -= data_size;
         TransmitTargetCmd(send);
         send.clear();
-        while (target_rsp_queue.empty());
-        target_rsp_queue.dequeue();
+        if (WaitForTargetRsp()) {
+            target_rsp_queue.dequeue();
+        }
     } while(length);
 }
 
@@ -226,13 +244,15 @@ void Transmit::ExecuteAlgorithm(quint32 cs, quint32 addr, quint32 count, QByteAr
     send.clear();
     send.append(temp);
     TransmitTargetCmd(send);
-    while (target_rsp_queue.empty());
-    target_rsp_queue.dequeue();
+    if (WaitForTargetRsp()) {
+        target_rsp_queue.dequeue();
+    }
     send.clear();
     send.append('c');
     TransmitTargetCmd(send);
-    while (target_rsp_queue.empty());
-    target_rsp_queue.dequeue();
+    if (WaitForTargetRsp()) {
+        target_rsp_queue.dequeue();
+    }
 }
 
 QByteArray Transmit::TransmitTargetRsp(QByteArray msg)
@@ -251,8 +271,9 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
     switch (msg[0]) {
     case '\x03':/* Ctrl+C command */
         TransmitTargetCmd(msg);
-        while (target_rsp_queue.empty());
-        TransmitServerRsp(target_rsp_queue.dequeue());
+        if (WaitForTargetRsp()) {
+            TransmitServerRsp(target_rsp_queue.dequeue());
+        }
         break;
     case 'q':
         if (strncmp(msg.constData(), "qSupported:", 11) == 0) {
@@ -263,41 +284,44 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
             send.append(interface.toLatin1());
             send.append(';');
             TransmitTargetCmd(send);
-            while (target_rsp_queue.empty());
-            recv = TransmitTargetRsp(target_rsp_queue.dequeue());
-            if (recv.contains("interface")) {
-                qDebug() << "set interface and connect success.";
-            } else {
-                qDebug() << "set interface and connect fail.";
+            if (WaitForTargetRsp()) {
+                recv = TransmitTargetRsp(target_rsp_queue.dequeue());
+                if (recv.contains("interface")) {
+                    qDebug() << "set interface and connect success.";
+                } else {
+                    qDebug() << "set interface and connect fail.";
+                }
             }
             //Get target MISA CSR register
             send.clear();
             send.append("+:read:misa;");
             TransmitTargetCmd(send);
-            while (target_rsp_queue.empty());
-            recv = TransmitTargetRsp(target_rsp_queue.dequeue());
-            if (recv.contains("misa")) {
-                quint32 target_misa;
-                sscanf(recv.constData(), "-:read:misa:%08x;", &target_misa);
-                misa->MisaInit(target_misa);
-                memxml->InitMemXml(misa);
-                qDebug() << "read misa:" << QString("%1").arg(target_misa, 4, 16);
-            } else {
-                qDebug() << "read misa fail.";
+            if (WaitForTargetRsp()) {
+                recv = TransmitTargetRsp(target_rsp_queue.dequeue());
+                if (recv.contains("misa")) {
+                    quint32 target_misa;
+                    sscanf(recv.constData(), "-:read:misa:%08x;", &target_misa);
+                    misa->MisaInit(target_misa);
+                    memxml->InitMemXml(misa);
+                    qDebug() << "read misa:" << QString("%1").arg(target_misa, 4, 16);
+                } else {
+                    qDebug() << "read misa fail.";
+                }
             }
             //Get target VLENB CSR register
             send.clear();
             send.append("+:read:vlenb;");
             TransmitTargetCmd(send);
-            while (target_rsp_queue.empty());
-            recv = TransmitTargetRsp(target_rsp_queue.dequeue());
-            if (recv.contains("vlenb")) {
-                quint64 target_vlenb;
-                sscanf(recv.constData(), "-:read:vlenb:%016llx;", &target_vlenb);
-                regxml->InitRegXml(misa, target_vlenb);
-                qDebug() << "read vlenb:" << QString("%1").arg(target_vlenb, 4, 16);
-            } else {
-                qDebug() << "read vlenb fail.";
+            if (WaitForTargetRsp()) {
+                recv = TransmitTargetRsp(target_rsp_queue.dequeue());
+                if (recv.contains("vlenb")) {
+                    quint64 target_vlenb;
+                    sscanf(recv.constData(), "-:read:vlenb:%016llx;", &target_vlenb);
+                    regxml->InitRegXml(misa, target_vlenb);
+                    qDebug() << "read vlenb:" << QString("%1").arg(target_vlenb, 4, 16);
+                } else {
+                    qDebug() << "read vlenb fail.";
+                }
             }
             //deal qSupported
             send.clear();
@@ -344,9 +368,10 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
     case 'Q':
         if (strncmp(msg.constData(), "QStartNoAckMode", 15) == 0) {
             TransmitTargetCmd(msg);
-            while (target_rsp_queue.empty());
-            TransmitServerRsp(target_rsp_queue.dequeue());
-            noack_mode = true;
+            if (WaitForTargetRsp()) {
+                TransmitServerRsp(target_rsp_queue.dequeue());
+                noack_mode = true;
+            }
         } else {
             /* Not support 'Q' command, reply empty. */
             TransmitServerRsp(send);
@@ -364,20 +389,23 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
     case 'g':/* `g` */
         /* Read general registers. */
         TransmitTargetCmd(msg);
-        while (target_rsp_queue.empty());
-        TransmitServerRsp(target_rsp_queue.dequeue());
+        if (WaitForTargetRsp()) {
+            TransmitServerRsp(target_rsp_queue.dequeue());
+        }
         break;
     case 'G':/* `G XX...` */
         /* Write general registers. */
         TransmitTargetCmd(msg);
-        while (target_rsp_queue.empty());
-        TransmitServerRsp(target_rsp_queue.dequeue());
+        if (WaitForTargetRsp()) {
+            TransmitServerRsp(target_rsp_queue.dequeue());
+        }
         break;
     case 'k':/* `k` */
         /* Kill request. */
         TransmitTargetCmd(msg);
-        while (target_rsp_queue.empty());
-        TransmitServerRsp(target_rsp_queue.dequeue());
+        if (WaitForTargetRsp()) {
+            TransmitServerRsp(target_rsp_queue.dequeue());
+        }
         break;
     case 'c':/* `c [addr]` */
         /* Continue at addr, which is the address to resume. */
@@ -390,51 +418,59 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
         /* Read length addressable memory units starting at address addr. */
         /* Note that addr may not be aligned to any particular boundary. */
         TransmitTargetCmd(msg);
-        while (target_rsp_queue.empty());
-        TransmitServerRsp(target_rsp_queue.dequeue());
+        if (WaitForTargetRsp()) {
+            TransmitServerRsp(target_rsp_queue.dequeue());
+        }
         break;
     case 'M':/* `M addr,length:XX...` */
         /* Write length addressable memory units starting at address addr. */
         TransmitTargetCmd(msg);
-        while (target_rsp_queue.empty());
-        TransmitServerRsp(target_rsp_queue.dequeue());
+        if (WaitForTargetRsp()) {
+            TransmitServerRsp(target_rsp_queue.dequeue());
+        }
         break;
     case 'X':/* `X addr,length:XX...` */
         /* Write data to memory, where the data is transmitted in binary. */
         TransmitTargetCmd(msg);
-        while (target_rsp_queue.empty());
-        TransmitServerRsp(target_rsp_queue.dequeue());
+        if (WaitForTargetRsp()) {
+            TransmitServerRsp(target_rsp_queue.dequeue());
+        }
         break;
     case 'p':/* `p n` */
         /* Read the value of register n; n is in hex. */
         TransmitTargetCmd(msg);
-        while (target_rsp_queue.empty());
-        TransmitServerRsp(target_rsp_queue.dequeue());
+        if (WaitForTargetRsp()) {
+            TransmitServerRsp(target_rsp_queue.dequeue());
+        }
         break;
     case 'P':/* `P n...=r...` */
         /* Write register n... with value r... The register number n is in hexadecimal, */
         /* and r... contains two hex digits for each byte in the register (target byte order). */
         TransmitTargetCmd(msg);
-        while (target_rsp_queue.empty());
-        TransmitServerRsp(target_rsp_queue.dequeue());
+        if (WaitForTargetRsp()) {
+            TransmitServerRsp(target_rsp_queue.dequeue());
+        }
         break;
     case 's':/* `s [addr]` */
         /* Single step, resuming at addr. If addr is omitted, resume at same address. */
         TransmitTargetCmd(msg);
-        while (target_rsp_queue.empty());
-        TransmitServerRsp(target_rsp_queue.dequeue());
+        if (WaitForTargetRsp()) {
+            TransmitServerRsp(target_rsp_queue.dequeue());
+        }
         break;
     case 'z':/* `z type,addr,kind` */
         /* remove a type breakpoint or watchpoint starting at address, address of kind. */
         TransmitTargetCmd(msg);
-        while (target_rsp_queue.empty());
-        TransmitServerRsp(target_rsp_queue.dequeue());
+        if (WaitForTargetRsp()) {
+            TransmitServerRsp(target_rsp_queue.dequeue());
+        }
         break;
     case 'Z':/* `Z type,addr,kind` */
         /* Insert a type breakpoint or watchpoint starting at address, address of kind. */
         TransmitTargetCmd(msg);
-        while (target_rsp_queue.empty());
-        TransmitServerRsp(target_rsp_queue.dequeue());
+        if (WaitForTargetRsp()) {
+            TransmitServerRsp(target_rsp_queue.dequeue());
+        }
         break;
     case 'v':
         if (strncmp(msg.constData(), "vMustReplyEmpty", 15) == 0) {
@@ -471,7 +507,6 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
             target_write_data = bin_decode(msg.mid(msg.indexOf(':', 15) + 1));
             target_write_len = target_write_data.size();
             qDebug() << "Write:" << QString("%1").arg(target_write_addr, 4, 16) << ":" << QString("%1").arg(target_write_len, 4, 16);
-            qDebug() << "Write data:" << target_write_data;
             ExecuteAlgorithm(WRITE_CMD, target_write_addr, target_write_len, target_write_data);
             send.append("OK");
             TransmitServerRsp(send);
