@@ -1,29 +1,21 @@
-#include "../include/application.h"
+#include "../include/application_console.h"
 
 Application::Application(QObject *parent)
     : QObject{parent}
 {
-    mainwindow = new MainWindow;
-    logout = new Logout;
     transmit = new Transmit;
     target = new Target;
     server = new Server;
-
-    logout->start();
 }
 
 void Application::ApplicationInit(int argc, char *argv[])
 {
     switch (argc) {
-    case 1://gui mode
-        mainwindow->setWindowTitle("Nuclei Dlink GDB Server");
-        mainwindow->install_message_handler();
-        mainwindow->show();
-        connect(mainwindow, SIGNAL(Close()), logout, SLOT(LogoutClose()));
-        connect(mainwindow, SIGNAL(Close()), transmit, SLOT(TransmitClose()));
-        connect(logout, SIGNAL(LogoutToUI(QString)), mainwindow, SLOT(output_log(QString)));
-        connect(mainwindow, SIGNAL(Connect(QString)), this, SLOT(ApplicationConnect(QString)));
-        connect(mainwindow, SIGNAL(Disconnect()), this, SLOT(ApplicationDisconnect()));
+    case 3://command line mode
+        if (0 == strncmp(argv[1], "-f", 2)) {
+            //start app
+            ApplicationConnect(argv[2]);
+        }
         break;
     default://help message
         qErrnoWarning("dlink_gdbserver -f ~/dlink_gdbserver.cfg");
