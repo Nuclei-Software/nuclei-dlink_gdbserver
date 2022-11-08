@@ -14,21 +14,14 @@ Application::Application(QObject *parent)
 
 void Application::ApplicationInit(int argc, char *argv[])
 {
-    switch (argc) {
-    case 1://gui mode
-        mainwindow->setWindowTitle("Nuclei Dlink GDB Server");
-        mainwindow->install_message_handler();
-        mainwindow->show();
-        connect(mainwindow, SIGNAL(Close()), logout, SLOT(LogoutClose()));
-        connect(mainwindow, SIGNAL(Close()), transmit, SLOT(TransmitClose()));
-        connect(logout, SIGNAL(LogoutToUI(QString)), mainwindow, SLOT(output_log(QString)));
-        connect(mainwindow, SIGNAL(Connect(QString)), this, SLOT(ApplicationConnect(QString)));
-        connect(mainwindow, SIGNAL(Disconnect()), this, SLOT(ApplicationDisconnect()));
-        break;
-    default://help message
-        qErrnoWarning("dlink_gdbserver -f ~/dlink_gdbserver.cfg");
-        break;
-    }
+    mainwindow->setWindowTitle("Nuclei Dlink GDB Server");
+    mainwindow->install_message_handler();
+    mainwindow->show();
+    connect(mainwindow, SIGNAL(Close()), logout, SLOT(LogoutClose()));
+    connect(mainwindow, SIGNAL(Close()), transmit, SLOT(TransmitClose()));
+    connect(logout, SIGNAL(LogoutToUI(QString)), mainwindow, SLOT(output_log(QString)));
+    connect(mainwindow, SIGNAL(Connect(QString)), this, SLOT(ApplicationConnect(QString)));
+    connect(mainwindow, SIGNAL(Disconnect()), this, SLOT(ApplicationDisconnect()));
 }
 
 void Application::ApplicationConnect(QString cfg_path)

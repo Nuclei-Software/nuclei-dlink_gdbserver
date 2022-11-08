@@ -114,6 +114,7 @@ void Transmit::TransmitInit()
     target_rsp_queue.clear();
 
     qDebug() << "Nuclei Dlink GDB Server " << version << "Command Line Version";
+    fprintf(stderr, "Started by GNU MCU Eclipse\n");
 }
 
 void Transmit::TransmitDeinit()
@@ -360,6 +361,11 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
             }
             send.append(regxml->GetRegXml(target_regxml_addr).constData(), target_regxml_len);
             TransmitServerRsp(send);
+        } else if (strncmp(msg.constData(), "qRcmd,", 6) == 0) {
+            TransmitTargetCmd(msg);
+            if (WaitForTargetRsp()) {
+                TransmitServerRsp(target_rsp_queue.dequeue());
+            }
         } else {
             /* Not support 'q' command, reply empty. */
             TransmitServerRsp(send);

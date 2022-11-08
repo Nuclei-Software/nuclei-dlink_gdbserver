@@ -10,16 +10,12 @@ Application::Application(QObject *parent)
 
 void Application::ApplicationInit(int argc, char *argv[])
 {
-    switch (argc) {
-    case 3://command line mode
-        if (0 == strncmp(argv[1], "-f", 2)) {
+    for (int i = 0; i < argc; i++) {
+        if (strncmp(argv[i], "-f", 2) == 0) {
             //start app
-            ApplicationConnect(argv[2]);
+            ApplicationConnect(argv[i + 1]);
+            break;
         }
-        break;
-    default://help message
-        qErrnoWarning("dlink_gdbserver -f ~/dlink_gdbserver.cfg");
-        break;
     }
 }
 
