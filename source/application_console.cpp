@@ -78,6 +78,9 @@ void Application::ApplicationConnect(QString cfg_path)
                 } else if (0 == command[1].compare("block_size")) {
                     transmit->flash.block_size = command[2].toUInt(nullptr, 16);
                 } else if (0 == command[1].compare("loader_path")) {
+                    if (QFile::exists(command[2])) {
+                        transmit->flash.loader_path = command[2];
+                    } else {
 #ifdef WIN32
                         transmit->flash.loader_path = cfg_path.mid(0, cfg_path.lastIndexOf('\\')) +
                                                       command[2].mid(command[2].lastIndexOf('\\'));
@@ -85,6 +88,7 @@ void Application::ApplicationConnect(QString cfg_path)
                         transmit->flash.loader_path = cfg_path.mid(0, cfg_path.lastIndexOf('/')) +
                                                       command[2].mid(command[2].lastIndexOf('/'));
 #endif
+                    }
                 }
             }
         }
