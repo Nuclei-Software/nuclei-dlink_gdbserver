@@ -39,7 +39,7 @@ void Server::ServerNewConnect()
 void Server::ServerSocketRead()
 {
     QByteArray msg = server_socket->readAll();
-    qDebug() << "S->:" << msg;
+    //qDebug() << "S->:" << msg;
     if ((msg.contains('$')) && (msg.contains('#'))) {
         server_cmd_queue.enqueue(msg);
     } else if (msg[0] == '\x03') {
@@ -57,6 +57,6 @@ void Server::ServerSocketDisconnect()
 
 void Server::ServerWrite(QByteArray msg)
 {
-    qDebug() << "->S:" << msg;
+    //qDebug() << "->S:" << msg;
     server_socket->write(msg);
 }

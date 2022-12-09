@@ -11,6 +11,29 @@ extern QQueue<QByteArray> target_rsp_queue;
 #define READ_CMD            (3)
 #define PROBE_CMD           (4)
 
+volatile quint32 bin_len_in_xbin;
+static QByteArray bin_encode(QByteArray bin, quint32 send_len)
+{
+    QByteArray xbin;
+    quint32 i, xbin_len = 0;
+
+    for(i = 0; i < send_len; i++) {
+        if ((bin[i] == '#') || (bin[i] == '$') || (bin[i] == '}') || (bin[i] == '*')) {
+            xbin.append(0x7d);
+            xbin.append(bin[i] ^ 0x20);
+            xbin_len += 2;
+        } else {
+            xbin.append(bin[i]);
+            xbin_len += 1;
+        }
+        if (xbin_len >= send_len) {
+            bin_len_in_xbin = i + 1;
+            break;
+        }
+    }
+    return xbin;
+}
+
 static QByteArray bin_decode(QByteArray xbin)
 {
     QByteArray bin;
@@ -31,34 +54,30 @@ static QByteArray bin_decode(QByteArray xbin)
     return bin;
 }
 
-static void bin_to_hex(QByteArray data_bin, char *hex, uint32_t nbyte)
+static QByteArray bin_to_hex(QByteArray data_bin, uint32_t nbyte)
 {
     uint32_t i;
     uint8_t hi;
     uint8_t lo;
+    QByteArray hex;
     char *bin = data_bin.data();
 
     for(i = 0; i < nbyte; i++) {
         hi = (*bin >> 4) & 0xf;
         lo = *bin & 0xf;
-
         if (hi < 10) {
-            *hex = '0' + hi;
+            hex.append('0' + hi);
         } else {
-            *hex = 'a' + hi - 10;
+            hex.append('a' + hi - 10);
         }
-
-        hex++;
-
         if (lo < 10) {
-            *hex = '0' + lo;
+            hex.append('0' + lo);
         } else {
-            *hex = 'a' + lo - 10;
+            hex.append('a' + lo - 10);
         }
-
-        hex++;
         bin++;
     }
+    return hex;
 }
 
 static QByteArray hex_to_bin(QByteArray data_hex, uint32_t nbyte)
@@ -76,7 +95,6 @@ static QByteArray hex_to_bin(QByteArray data_hex, uint32_t nbyte)
         } else {
             hi = hex[i * 2] - 'a' + 10;
         }
-
         if (hex[i * 2 + 1] <= '9') {
             lo = hex[i * 2 + 1] - '0';
         } else if (hex[i * 2 + 1] <= 'F') {
@@ -84,7 +102,6 @@ static QByteArray hex_to_bin(QByteArray data_hex, uint32_t nbyte)
         } else {
             lo = hex[i * 2 + 1] - 'a' + 10;
         }
-
         bin = (hi << 4) | lo;
         data_bin.append(bin);
     }
@@ -108,7 +125,7 @@ void Transmit::TransmitInit()
 
     noack_mode = false;
     server_reply_flag = true;
-    packet_size = 0x200;
+    packet_size = 0x400;
 
     server_cmd_queue.clear();
     target_rsp_queue.clear();
@@ -166,18 +183,18 @@ QByteArray Transmit::ReadTargetMemory(quint32 memory_addr, quint32 length)
         if (length < data_size) {
             data_size = length;
         }
-        sprintf(temp, "m%x,%x", data_addr + memory_addr, data_size);
+        sprintf(temp, "x%x,%x", data_addr + memory_addr, data_size);
         send.append(temp);
-        data_addr += data_size;
-        length -= data_size;
         TransmitTargetCmd(send);
         send.clear();
         if (WaitForTargetRsp()) {
-            read = TransmitTargetRsp(target_rsp_queue.dequeue());
-            bin.append(hex_to_bin(read, data_size));
+            read = bin_decode(TransmitTargetRsp(target_rsp_queue.dequeue()));
+            bin.append(read);
         } else {
             return NULL;
         }
+        data_addr += read.size();
+        length -= read.size();
     } while (length);
     return bin;
 }
@@ -186,20 +203,18 @@ void Transmit::WriteTargetMemory(quint32 memory_addr, QByteArray data, quint32 l
 {
     quint32 data_size = packet_size;
     quint32 data_addr = 0;
-    QByteArray send;
+    QByteArray send, xbin;
     char temp[1024];
     do {
         if (length < data_size) {
             data_size = length;
         }
-        sprintf(temp, "M%x,%x:", data_addr + memory_addr, data_size);
+        xbin = bin_encode(data.mid(data_addr), data_size);
+        sprintf(temp, "X%x,%x:", data_addr + memory_addr, bin_len_in_xbin);
+        data_addr += bin_len_in_xbin;
+        length -= bin_len_in_xbin;
         send.append(temp);
-        bin_to_hex(data.mid(data_addr), temp, data_size);
-        for (quint32 i = 0; i < (data_size * 2); i++) {
-            send.append(temp[i]);
-        }
-        data_addr += data_size;
-        length -= data_size;
+        send.append(xbin);
         TransmitTargetCmd(send);
         send.clear();
         if (WaitForTargetRsp()) {
@@ -216,7 +231,7 @@ void Transmit::ExecuteAlgorithm(quint32 cs, quint32 addr, quint32 count, QByteAr
 
     if (WRITE_CMD == cs) {
         //download write data
-        WriteTargetMemory(buffer_addr, buffer, buffer.size());
+        WriteTargetMemory(buffer_addr, buffer, count);
     }
     //execute algorithm
     switch (cs) {
@@ -268,7 +283,8 @@ void Transmit::TransmitTargetCmd(QByteArray msg)
 
 void Transmit::TransmitServerCmdDeal(QByteArray msg)
 {
-    QByteArray send, recv;
+    QByteArray send, recv, cache;
+    quint64 addr, len, temp;
     switch (msg[0]) {
     case '\x03':/* Ctrl+C command */
         TransmitTargetCmd(msg);
@@ -300,11 +316,10 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
             if (WaitForTargetRsp()) {
                 recv = TransmitTargetRsp(target_rsp_queue.dequeue());
                 if (recv.contains("misa")) {
-                    quint32 target_misa;
-                    sscanf(recv.constData(), "-:read:misa:%08x;", &target_misa);
-                    misa->MisaInit(target_misa);
+                    sscanf(recv.constData(), "-:read:misa:%08llx;", &temp);
+                    misa->MisaInit(temp);
                     memxml->InitMemXml(misa);
-                    qDebug() << "read misa:" << QString("%1").arg(target_misa, 4, 16);
+                    qDebug() << "read misa:" << QString("%1").arg(temp, 4, 16);
                 } else {
                     qDebug() << "read misa fail.";
                 }
@@ -316,10 +331,9 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
             if (WaitForTargetRsp()) {
                 recv = TransmitTargetRsp(target_rsp_queue.dequeue());
                 if (recv.contains("vlenb")) {
-                    quint64 target_vlenb;
-                    sscanf(recv.constData(), "-:read:vlenb:%016llx;", &target_vlenb);
-                    regxml->InitRegXml(misa, target_vlenb);
-                    qDebug() << "read vlenb:" << QString("%1").arg(target_vlenb, 4, 16);
+                    sscanf(recv.constData(), "-:read:vlenb:%016llx;", &temp);
+                    regxml->InitRegXml(misa, temp);
+                    qDebug() << "read vlenb:" << QString("%1").arg(temp, 4, 16);
                 } else {
                     qDebug() << "read vlenb fail.";
                 }
@@ -334,32 +348,26 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
                         "hwbreak+;");
             TransmitServerRsp(send);
         } else if (strncmp(msg.constData(), "qXfer:memory-map:read::", 23) == 0) {
-            quint32 target_memxml_addr;
-            quint32 target_memxml_len;
-            quint32 xml_len;
-            sscanf(msg.constData(), "qXfer:memory-map:read::%x,%x", &target_memxml_addr, &target_memxml_len);
-            xml_len = memxml->GetMemXmlLen();
-            if (target_memxml_len >= (xml_len - target_memxml_addr)) {
-                target_memxml_len = xml_len - target_memxml_addr;
+            sscanf(msg.constData(), "qXfer:memory-map:read::%llx,%llx", &addr, &len);
+            temp = memxml->GetMemXmlLen();
+            if (len >= (temp - addr)) {
+                len = temp - addr;
                 send.append('l');
             } else {
                 send.append('m');
             }
-            send.append(memxml->GetMemXml(target_memxml_addr).constData(), target_memxml_len);
+            send.append(memxml->GetMemXml(addr).constData(), len);
             TransmitServerRsp(send);
         } else if (strncmp(msg.constData(), "qXfer:features:read:target.xml:", 31) == 0) {
-            quint32 target_regxml_addr;
-            quint32 target_regxml_len;
-            quint32 xml_len;
-            sscanf(msg.constData(), "qXfer:features:read:target.xml:%x,%x", &target_regxml_addr, &target_regxml_len);
-            xml_len = regxml->GetRegXmlLen();
-            if (target_regxml_len >= (xml_len - target_regxml_addr)) {
-                target_regxml_len = xml_len - target_regxml_addr;
+            sscanf(msg.constData(), "qXfer:features:read:target.xml:%llx,%llx", &addr, &len);
+            temp = regxml->GetRegXmlLen();
+            if (len >= (temp - addr)) {
+                len = temp - addr;
                 send.append('l');
             } else {
                 send.append('m');
             }
-            send.append(regxml->GetRegXml(target_regxml_addr).constData(), target_regxml_len);
+            send.append(regxml->GetRegXml(addr).constData(), len);
             TransmitServerRsp(send);
         } else if (strncmp(msg.constData(), "qRcmd,", 6) == 0) {
             TransmitTargetCmd(msg);
@@ -423,17 +431,18 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
     case 'm':/* `m addr,length` */
         /* Read length addressable memory units starting at address addr. */
         /* Note that addr may not be aligned to any particular boundary. */
-        TransmitTargetCmd(msg);
-        if (WaitForTargetRsp()) {
-            TransmitServerRsp(target_rsp_queue.dequeue());
-        }
+        sscanf(msg.constData(), "m%llx,%llx:", &addr, &len);
+        cache = ReadTargetMemory(addr, len);
+        send = bin_to_hex(cache, cache.size());
+        TransmitServerRsp(send);
         break;
     case 'M':/* `M addr,length:XX...` */
         /* Write length addressable memory units starting at address addr. */
-        TransmitTargetCmd(msg);
-        if (WaitForTargetRsp()) {
-            TransmitServerRsp(target_rsp_queue.dequeue());
-        }
+        sscanf(msg.constData(), "M%llx,%llx:", &addr, &len);
+        cache = hex_to_bin(msg.mid(msg.indexOf(':') + 1), len);
+        WriteTargetMemory(addr, cache, cache.size());
+        send.append("OK");
+        TransmitServerRsp(send);
         break;
     case 'X':/* `X addr,length:XX...` */
         /* Write data to memory, where the data is transmitted in binary. */
@@ -490,30 +499,25 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
             QFile loader(flash.loader_path);
             if (loader.exists()) {
                 loader.open(QIODevice::ReadOnly);
-                QByteArray bin = loader.readAll();
+                cache = loader.readAll();
                 loader_addr = workarea.addr;
-                WriteTargetMemory(loader_addr, bin, bin.size());
-                buffer_addr = loader_addr + bin.size();
+                WriteTargetMemory(loader_addr, cache, cache.size());
+                buffer_addr = loader_addr + cache.size();
             } else {
                 qDebug() << flash.loader_path << " not found.";
             }
             ExecuteAlgorithm(PROBE_CMD, 0, 0, NULL);
-            quint64 target_erase_addr;
-            quint64 target_erase_len;
-            sscanf(msg.constData(), "vFlashErase:%llx,%llx", &target_erase_addr, &target_erase_len);
-            qDebug() << "Erase:" << QString("%1").arg(target_erase_addr, 4, 16) << ":" << QString("%1").arg(target_erase_len, 4, 16);
-            ExecuteAlgorithm(ERASE_CMD, target_erase_addr, target_erase_len, NULL);
+            sscanf(msg.constData(), "vFlashErase:%llx,%llx", &addr, &len);
+            qDebug() << "Erase:" << QString("%1").arg(addr, 4, 16) << ":" << QString("%1").arg(len, 4, 16);
+            ExecuteAlgorithm(ERASE_CMD, addr, len, NULL);
             send.append("OK");
             TransmitServerRsp(send);
         } else if (strncmp(msg.constData(), "vFlashWrite:", 12) == 0) {
-            quint64 target_write_addr;
-            quint64 target_write_len;
-            QByteArray target_write_data;
-            sscanf(msg.constData(), "vFlashWrite:%llx:", &target_write_addr);
-            target_write_data = bin_decode(msg.mid(msg.indexOf(':', 15) + 1));
-            target_write_len = target_write_data.size();
-            qDebug() << "Write:" << QString("%1").arg(target_write_addr, 4, 16) << ":" << QString("%1").arg(target_write_len, 4, 16);
-            ExecuteAlgorithm(WRITE_CMD, target_write_addr, target_write_len, target_write_data);
+            sscanf(msg.constData(), "vFlashWrite:%llx:", &addr);
+            cache = bin_decode(msg.mid(msg.indexOf(':', 15) + 1));
+            len = cache.size();
+            qDebug() << "Write:" << QString("%1").arg(addr, 4, 16) << ":" << QString("%1").arg(len, 4, 16);
+            ExecuteAlgorithm(WRITE_CMD, addr, len, cache);
             send.append("OK");
             TransmitServerRsp(send);
         } else if (strncmp(msg.constData(), "vFlashDone", 10) == 0) {
