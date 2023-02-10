@@ -112,6 +112,7 @@ Transmit::Transmit()
 {
     misa = new Misa;
     regxml = new RegXml;
+    workarea.addr = 0;
 }
 
 void Transmit::TransmitInit()
@@ -491,42 +492,75 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
         if (strncmp(msg.constData(), "vMustReplyEmpty", 15) == 0) {
             TransmitServerRsp(send);
         } else if (strncmp(msg.constData(), "vFlashErase:", 12) == 0) {
-            //backup workarea
-            if (workarea.backup) {
-                workarea.mem = ReadTargetMemory(workarea.addr, workarea.size);
-            }
-            //download flash loader
-            QFile loader(flash.loader_path);
-            if (loader.exists()) {
-                loader.open(QIODevice::ReadOnly);
-                cache = loader.readAll();
-                loader_addr = workarea.addr;
-                WriteTargetMemory(loader_addr, cache, cache.size());
-                buffer_addr = loader_addr + cache.size();
+            if (workarea.addr) {
+                //backup workarea
+                if (workarea.backup) {
+                    workarea.mem = ReadTargetMemory(workarea.addr, workarea.size);
+                }
+                //download flash loader
+                QFile loader(flash.loader_path);
+                if (loader.exists()) {
+                    loader.open(QIODevice::ReadOnly);
+                    cache = loader.readAll();
+                    loader_addr = workarea.addr;
+                    WriteTargetMemory(loader_addr, cache, cache.size());
+                    buffer_addr = loader_addr + cache.size();
+                } else {
+                    qDebug() << flash.loader_path << " not found.";
+                }
+                ExecuteAlgorithm(PROBE_CMD, 0, 0, NULL);
+                sscanf(msg.constData(), "vFlashErase:%llx,%llx", &addr, &len);
+                qDebug() << "Erase:" << QString("%1").arg(addr, 4, 16) << ":" << QString("%1").arg(len, 4, 16);
+                ExecuteAlgorithm(ERASE_CMD, addr, len, NULL);
+                send.append("OK");
+                TransmitServerRsp(send);
             } else {
-                qDebug() << flash.loader_path << " not found.";
+                char temp_buf[1024];
+                sprintf(temp_buf, "vFlashInit:%llx,%llx;", flash.spi_base, flash.block_size);
+                send.append(temp_buf);
+                TransmitTargetCmd(send);
+                if (WaitForTargetRsp()) {
+                    recv = TransmitTargetRsp(target_rsp_queue.dequeue());
+                    if (recv.contains("OK")) {
+                        qDebug() << "flash init ok.";
+                    } else {
+                        qDebug() << "flash init fail.";
+                    }
+                }
+                TransmitTargetCmd(msg);
+                if (WaitForTargetRsp()) {
+                    TransmitServerRsp(target_rsp_queue.dequeue());
+                }
             }
-            ExecuteAlgorithm(PROBE_CMD, 0, 0, NULL);
-            sscanf(msg.constData(), "vFlashErase:%llx,%llx", &addr, &len);
-            qDebug() << "Erase:" << QString("%1").arg(addr, 4, 16) << ":" << QString("%1").arg(len, 4, 16);
-            ExecuteAlgorithm(ERASE_CMD, addr, len, NULL);
-            send.append("OK");
-            TransmitServerRsp(send);
         } else if (strncmp(msg.constData(), "vFlashWrite:", 12) == 0) {
-            sscanf(msg.constData(), "vFlashWrite:%llx:", &addr);
-            cache = bin_decode(msg.mid(msg.indexOf(':', 15) + 1));
-            len = cache.size();
-            qDebug() << "Write:" << QString("%1").arg(addr, 4, 16) << ":" << QString("%1").arg(len, 4, 16);
-            ExecuteAlgorithm(WRITE_CMD, addr, len, cache);
-            send.append("OK");
-            TransmitServerRsp(send);
-        } else if (strncmp(msg.constData(), "vFlashDone", 10) == 0) {
-            //restore workarea
-            if (workarea.backup) {
-                WriteTargetMemory(workarea.addr, workarea.mem, workarea.size);
+            if (workarea.addr) {
+                sscanf(msg.constData(), "vFlashWrite:%llx:", &addr);
+                cache = bin_decode(msg.mid(msg.indexOf(':', 15) + 1));
+                len = cache.size();
+                qDebug() << "Write:" << QString("%1").arg(addr, 4, 16) << ":" << QString("%1").arg(len, 4, 16);
+                ExecuteAlgorithm(WRITE_CMD, addr, len, cache);
+                send.append("OK");
+                TransmitServerRsp(send);
+            } else {
+                TransmitTargetCmd(msg);
+                if (WaitForTargetRsp()) {
+                    TransmitServerRsp(target_rsp_queue.dequeue());
+                }
             }
-            send.append("OK");
-            TransmitServerRsp(send);
+        } else if (strncmp(msg.constData(), "vFlashDone", 10) == 0) {
+            if (workarea.addr) {
+                //restore workarea
+                if (workarea.backup) {
+                    WriteTargetMemory(workarea.addr, workarea.mem, workarea.size);
+                }
+                send.append("OK");
+                TransmitServerRsp(send);
+            } else {
+                TransmitTargetCmd(msg);
+                if (WaitForTargetRsp()) {
+                    TransmitServerRsp(target_rsp_queue.dequeue());
+                }
+            }
         } else {
             /* Not support 'v' command, reply empty. */
             TransmitServerRsp(send);
