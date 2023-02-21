@@ -11,24 +11,17 @@ extern QQueue<QByteArray> target_rsp_queue;
 #define READ_CMD            (3)
 #define PROBE_CMD           (4)
 
-volatile quint32 bin_len_in_xbin;
-static QByteArray bin_encode(QByteArray bin, quint32 send_len)
+static QByteArray bin_encode(QByteArray bin, quint32 bin_len)
 {
     QByteArray xbin;
-    quint32 i, xbin_len = 0;
+    quint32 i;
 
-    for(i = 0; i < send_len; i++) {
+    for(i = 0; i < bin_len; i++) {
         if ((bin[i] == '#') || (bin[i] == '$') || (bin[i] == '}') || (bin[i] == '*')) {
             xbin.append(0x7d);
             xbin.append(bin[i] ^ 0x20);
-            xbin_len += 2;
         } else {
             xbin.append(bin[i]);
-            xbin_len += 1;
-        }
-        if (xbin_len >= send_len) {
-            bin_len_in_xbin = i + 1;
-            break;
         }
     }
     return xbin;
@@ -39,6 +32,7 @@ static QByteArray bin_decode(QByteArray xbin)
     QByteArray bin;
     quint32 i;
     bool escape_found = false;
+
     for(i = 0; i < xbin.size(); i++) {
         if (xbin[i] == 0x7d) {
             escape_found = true;
@@ -126,7 +120,7 @@ void Transmit::TransmitInit()
 
     noack_mode = false;
     server_reply_flag = true;
-    packet_size = 0x400;
+    packet_size = 0x200;
 
     server_cmd_queue.clear();
     target_rsp_queue.clear();
@@ -179,23 +173,33 @@ QByteArray Transmit::ReadTargetMemory(quint32 memory_addr, quint32 length)
     quint32 data_size = packet_size;
     quint32 data_addr = 0;
     QByteArray send, read, bin;
+    bool is_x_command = 1;
     char temp[1024];
     do {
         if (length < data_size) {
             data_size = length;
         }
-        sprintf(temp, "x%x,%x", data_addr + memory_addr, data_size);
+        if (is_x_command) {
+            sprintf(temp, "x%x,%x", data_addr + memory_addr, data_size);
+        } else {
+            sprintf(temp, "m%x,%x", data_addr + memory_addr, data_size);
+        }
         send.append(temp);
         TransmitTargetCmd(send);
         send.clear();
         if (WaitForTargetRsp()) {
-            read = bin_decode(TransmitTargetRsp(target_rsp_queue.dequeue()));
-            bin.append(read);
+            if (is_x_command) {
+                read = bin_decode(TransmitTargetRsp(target_rsp_queue.dequeue()));
+                bin.append(read);
+            } else {
+                read = TransmitTargetRsp(target_rsp_queue.dequeue());
+                bin.append(hex_to_bin(read, data_size));
+            }
         } else {
             return NULL;
         }
-        data_addr += read.size();
-        length -= read.size();
+        data_addr += data_size;
+        length -= data_size;
     } while (length);
     return bin;
 }
@@ -204,18 +208,24 @@ void Transmit::WriteTargetMemory(quint32 memory_addr, QByteArray data, quint32 l
 {
     quint32 data_size = packet_size;
     quint32 data_addr = 0;
-    QByteArray send, xbin;
+    QByteArray send;
+    bool is_x_command = 1;
     char temp[1024];
     do {
         if (length < data_size) {
             data_size = length;
         }
-        xbin = bin_encode(data.mid(data_addr), data_size);
-        sprintf(temp, "X%x,%x:", data_addr + memory_addr, bin_len_in_xbin);
-        data_addr += bin_len_in_xbin;
-        length -= bin_len_in_xbin;
-        send.append(temp);
-        send.append(xbin);
+        if (is_x_command) {
+            sprintf(temp, "X%x,%x:", data_addr + memory_addr, data_size);
+            send.append(temp);
+            send.append(bin_encode(data.mid(data_addr), data_size));
+        } else {
+            sprintf(temp, "M%x,%x:", data_addr + memory_addr, data_size);
+            send.append(temp);
+            send.append(bin_to_hex(data.mid(data_addr), data_size));
+        }
+        data_addr += data_size;
+        length -= data_size;
         TransmitTargetCmd(send);
         send.clear();
         if (WaitForTargetRsp()) {
@@ -432,18 +442,17 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
     case 'm':/* `m addr,length` */
         /* Read length addressable memory units starting at address addr. */
         /* Note that addr may not be aligned to any particular boundary. */
-        sscanf(msg.constData(), "m%llx,%llx:", &addr, &len);
-        cache = ReadTargetMemory(addr, len);
-        send = bin_to_hex(cache, cache.size());
-        TransmitServerRsp(send);
+        TransmitTargetCmd(msg);
+        if (WaitForTargetRsp()) {
+            TransmitServerRsp(target_rsp_queue.dequeue());
+        }
         break;
     case 'M':/* `M addr,length:XX...` */
         /* Write length addressable memory units starting at address addr. */
-        sscanf(msg.constData(), "M%llx,%llx:", &addr, &len);
-        cache = hex_to_bin(msg.mid(msg.indexOf(':') + 1), len);
-        WriteTargetMemory(addr, cache, cache.size());
-        send.append("OK");
-        TransmitServerRsp(send);
+        TransmitTargetCmd(msg);
+        if (WaitForTargetRsp()) {
+            TransmitServerRsp(target_rsp_queue.dequeue());
+        }
         break;
     case 'X':/* `X addr,length:XX...` */
         /* Write data to memory, where the data is transmitted in binary. */
