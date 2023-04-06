@@ -173,7 +173,7 @@ QByteArray Transmit::ReadTargetMemory(quint32 memory_addr, quint32 length)
     quint32 data_size = packet_size;
     quint32 data_addr = 0;
     QByteArray send, read, bin;
-    bool is_x_command = 1;
+    bool is_x_command = 0;
     char temp[1024];
     do {
         if (length < data_size) {
@@ -209,7 +209,7 @@ void Transmit::WriteTargetMemory(quint32 memory_addr, QByteArray data, quint32 l
     quint32 data_size = packet_size;
     quint32 data_addr = 0;
     QByteArray send;
-    bool is_x_command = 1;
+    bool is_x_command = 0;
     char temp[1024];
     do {
         if (length < data_size) {
