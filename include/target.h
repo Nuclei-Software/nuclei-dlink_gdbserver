@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QDebug>
 #include <QSerialPort>
+#include <QSerialPortInfo>
 #include <QQueue>
 
 class Target : public QObject
@@ -16,6 +17,7 @@ public:
 
     QString target_serial_name;
     qint32 target_serial_baud;
+    QString target_serial_number;
 
 private:
     QSerialPort* target_serial_port;

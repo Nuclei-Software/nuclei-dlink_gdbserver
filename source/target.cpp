@@ -1,6 +1,7 @@
 #include "../include/target.h"
 
 QQueue<QByteArray> target_rsp_queue;
+QList<QSerialPortInfo> info;
 
 Target::Target(QObject *parent) : QObject(parent)
 {
@@ -9,6 +10,59 @@ Target::Target(QObject *parent) : QObject(parent)
 
 void Target::TargetInit()
 {
+    bool flag_serial = false;
+    info = QSerialPortInfo::availablePorts();
+    foreach (QSerialPortInfo port, info) {
+        if ((0x018a == port.productIdentifier()) && (0x28e9 == port.vendorIdentifier())) {
+            if (target_serial_number.isEmpty()) {
+                if (target_serial_name.isEmpty()) {
+                    target_serial_name = port.portName();
+                    target_serial_number = port.serialNumber();
+                    flag_serial = true;
+                    break;
+                } else {
+                    if (target_serial_name == port.portName()) {
+                        target_serial_name = port.portName();
+                        target_serial_number = port.serialNumber();
+                        flag_serial = true;
+                        break;
+                    }
+                }
+            } else if (target_serial_name.isEmpty()) {
+                if (target_serial_number == port.serialNumber()) {
+                    target_serial_name = port.portName();
+                    target_serial_number = port.serialNumber();
+                    flag_serial = true;
+                    break;
+                }
+            } else {
+                if (((target_serial_number == port.serialNumber()) && (target_serial_name != port.portName())) ||
+                    ((target_serial_number != port.serialNumber()) && (target_serial_name == port.portName()))) {
+                    qDebug() << target_serial_name << " and " << target_serial_number << "is not match.";
+                    return;
+                }
+                if ((target_serial_number == port.serialNumber()) && (target_serial_name == port.portName())) {
+                    flag_serial = true;
+                    break;
+                }
+            }
+        }
+    }
+    if (flag_serial) {
+        qDebug() << "portName:" << target_serial_name << " serialNumber:" << target_serial_number;
+    } else {
+        qDebug() << "Not found Dlink, Try the following device:";
+        QString last_number;
+        foreach (QSerialPortInfo port, info) {
+            if ((0x018a == port.productIdentifier()) && (0x28e9 == port.vendorIdentifier())) {
+                if (last_number != port.serialNumber()) {
+                    qDebug() << "portName " << port.portName() << " serialNumber " << port.serialNumber();
+                    last_number = port.serialNumber();
+                }
+            }
+        }
+        return;
+    }
     target_serial_port->setPortName(target_serial_name);
     target_serial_port->setBaudRate(target_serial_baud);
     target_serial_port->setDataBits(QSerialPort::Data8);
@@ -26,6 +80,8 @@ void Target::TargetInit()
 
 void Target::TargetDeinit()
 {
+    target_serial_name.clear();
+    target_serial_number.clear();
     target_serial_port->close();
     qDebug() << "Close:" << target_serial_name;
 }

@@ -50,6 +50,8 @@ void Application::ApplicationConnect(QString cfg_path)
                     target->target_serial_name = command[2];
                 } else if (0 == command[1].compare("baud")) {
                     target->target_serial_baud = command[2].toUInt(nullptr, 10);
+                } else if (0 == command[1].compare("number")) {
+                    target->target_serial_number = command[2];
                 }
             }
             //transport command group
