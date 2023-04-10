@@ -1,5 +1,7 @@
 #include "../include/application.h"
 
+extern bool debug;
+
 Application::Application(QObject *parent)
     : QObject{parent}
 {
@@ -38,6 +40,13 @@ void Application::ApplicationConnect(QString cfg_path)
             }
             //split cfg line
             QList<QString> command = line.split(' ');
+            if (0 == command[0].compare("debug")) {
+                if (0 == command[1].compare("true")) {
+                    debug = true;
+                } else {
+                    debug = false;
+                }
+            }
             //gdb command group
             if (0 == command[0].compare("gdb")) {
                 if (0 == command[1].compare("port")) {

@@ -1,5 +1,7 @@
 #include "../include/target.h"
 
+extern bool debug;
+
 QQueue<QByteArray> target_rsp_queue;
 QList<QSerialPortInfo> info;
 
@@ -92,7 +94,9 @@ void Target::TargetSerialReadyRead()
     if ((target_msg.contains('$')) && (target_msg.contains('#')) && (target_msg.contains('|'))) {
         foreach (QByteArray msg, target_msg.split('|')) {
             if ((msg.contains('$')) && (msg.contains('#'))) {
-                //qDebug() << "T->:" << msg;
+                if (debug) {
+                    qDebug() << "T->:" << msg;
+                }
                 target_rsp_queue.enqueue(msg.mid(msg.indexOf('$') + 1,
                                                  msg.indexOf('#') - msg.indexOf('$') - 1));
             }
@@ -103,6 +107,8 @@ void Target::TargetSerialReadyRead()
 
 void Target::TargetWrite(QByteArray msg)
 {
-    //qDebug() << "->T:" << msg;
+    if (debug) {
+        qDebug() << "->T:" << msg;
+    }
     target_serial_port->write(msg);
 }

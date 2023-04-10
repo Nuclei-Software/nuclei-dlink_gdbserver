@@ -5,6 +5,8 @@ QString version = "V1.0.0";
 extern QQueue<QByteArray> server_cmd_queue;
 extern QQueue<QByteArray> target_rsp_queue;
 
+bool debug = false;
+
 /*==== Loader ====*/
 #define ERASE_CMD           (1)
 #define WRITE_CMD           (2)

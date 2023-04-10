@@ -1,5 +1,7 @@
 #include "../include/application_console.h"
 
+extern bool debug;
+
 Application::Application(QObject *parent)
     : QObject{parent}
 {
