@@ -44,6 +44,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->lineEdit_LoaderPath->setText("/* Please click right button select dlink gdb server config file. */");
     ui->textBrowser_Logout->document()->setMaximumBlockCount(10000);
+    ui->textBrowser_Logout->setReadOnly(true);
+    ui->textBrowser_Logout->setTextInteractionFlags(Qt::NoTextInteraction);
 }
 
 MainWindow::~MainWindow()
