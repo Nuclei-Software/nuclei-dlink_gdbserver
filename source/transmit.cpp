@@ -135,6 +135,7 @@ void Transmit::TransmitDeinit()
 {
     delete memxml;
     delete algorithm;
+    workarea.addr = 0;
 }
 
 QByteArray Transmit::TransmitPackage(QByteArray msg)
