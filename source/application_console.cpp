@@ -12,6 +12,11 @@ Application::Application(QObject *parent)
 
 void Application::ApplicationInit(int argc, char *argv[])
 {
+    if (argc != 3) {
+        qDebug() << "Command Error:";
+        qDebug() << "Example: ./dlink_gdbserver_console -f dlink_gdbserver.cfg";
+        exit(-1);
+    }
     for (int i = 0; i < argc; i++) {
         if (strncmp(argv[i], "-f", 2) == 0) {
             //start app
