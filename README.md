@@ -23,6 +23,14 @@
 
 > Since the latest version of QT only supports online installation, I'll use online installation as an example here
 
+Index of **/qtproject/official_releases/online_installers/**
+
+The mode of online installation will be slow in China, so we need to add the following parameters at startup:
+
+``` bash
+.\qt-unified-windows-x64-online.exe --mirror https://mirrors.tuna.tsinghua.edu.cn/qt
+```
+
 ![](img/qt_online_install_0.png)
 
 ![](img/qt_online_install_1.png)
