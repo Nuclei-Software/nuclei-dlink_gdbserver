@@ -31,7 +31,11 @@ private:
     bool WaitForTargetRsp();
     QByteArray ReadTargetMemory(quint32 memory_addr, quint32 length);
     void WriteTargetMemory(quint32 memory_addr, QByteArray data, quint32 length);
+    quint64 ReadTargetRegister(quint32 register_number);
+    void WriteTargetRegister(quint32 register_number, quint64 value);
     void ExecuteAlgorithm(quint32 cs, quint32 addr, quint32 count, QByteArray buffer);
+    void command_print(const char *format, ...);
+    void NucleiCpuinfo(void);
     QByteArray TransmitTargetRsp(QByteArray msg);
     void TransmitTargetCmd(QByteArray msg);
     void TransmitServerCmdDeal(QByteArray msg);
@@ -49,6 +53,7 @@ private:
     Algorithm* algorithm;
     bool server_reply_flag;
     QByteArray current_command;
+    QByteArray cpuinfo_hex;
 
 signals:
     void TransmitToTarget(QByteArray);

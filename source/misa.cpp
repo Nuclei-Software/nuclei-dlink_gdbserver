@@ -7,6 +7,7 @@ Misa::Misa(QObject *parent)
 
 void Misa::MisaInit(quint32 misa)
 {
+    value = misa;
     a   = (misa & (0x1 << 0 )) >> 0 ;
     b   = (misa & (0x1 << 1 )) >> 1 ;
     c   = (misa & (0x1 << 2 )) >> 2 ;

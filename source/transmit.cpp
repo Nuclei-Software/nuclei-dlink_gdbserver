@@ -13,6 +13,41 @@ bool debug = false;
 #define READ_CMD            (3)
 #define PROBE_CMD           (4)
 
+/*==== Nuclei cpuinfo ====*/
+#define RV_REG_MARCHID            (65+0xf12)
+#define RV_REG_MIMPID             (65+0xf13)
+#define RV_REG_MICFG_INFO         (65+0xfc0)
+#define RV_REG_MDCFG_INFO         (65+0xfc1)
+#define RV_REG_MCFG_INFO          (65+0xfc2)
+#define RV_REG_MTLBCFG_INFO       (65+0xfc3)
+#define RV_REG_MIRGB_INFO         (65+0x7f7)
+#define RV_REG_MPPICFG_INFO       (65+0x7f0)
+#define RV_REG_MFIOCFG_INFO       (65+0x7f1)
+#define BIT(ofs)                  (0x1UL << (ofs))
+#define KB                        (1024)
+#define MB                        (KB * 1024)
+#define GB                        (MB * 1024)
+#define EXTENSION_NUM             (26)
+#define POWER_FOR_TWO(n)          (1 << (n))
+#define EXTRACT_FIELD(val, which) (((val) & (which)) / ((which) & ~((which)-1)))
+#define print_size(bytes) do {\
+    if ((bytes) / GB) {\
+        command_print(" %ldGB", (bytes) / GB);\
+    } else if ((bytes) / MB) {\
+        command_print(" %ldMB", (bytes) / MB);\
+    } else if ((bytes) / KB) {\
+        command_print(" %ldKB", (bytes) / KB);\
+    } else {\
+        command_print(" %ldByte", (bytes));\
+    }\
+} while(0);
+#define show_cache_info(set, way, lsize) do {\
+    print_size(set * way * lsize);\
+    command_print("(set=%ld,", set);\
+    command_print("way=%ld,", way);\
+    command_print("lsize=%ld)\n", lsize);\
+} while(0);
+
 static QByteArray bin_encode(QByteArray bin, quint32 bin_len)
 {
     QByteArray xbin;
@@ -237,6 +272,49 @@ void Transmit::WriteTargetMemory(quint32 memory_addr, QByteArray data, quint32 l
     } while(length);
 }
 
+quint64 Transmit::ReadTargetRegister(quint32 register_number)
+{
+    char temp[1024];
+    QByteArray send, read;
+    quint64 value = 0;
+
+    sprintf(temp, "p%x", register_number);
+    send.append(temp);
+    TransmitTargetCmd(send);
+    if (WaitForTargetRsp()) {
+        read = TransmitTargetRsp(target_rsp_queue.dequeue());
+        if (read.size() <= 8) {
+            value = read.mid(0, 2).toLongLong(NULL, 16);
+            value |= read.mid(2, 2).toLongLong(NULL, 16) << 8;
+            value |= read.mid(4, 2).toLongLong(NULL, 16) << 16;
+            value |= read.mid(6, 2).toLongLong(NULL, 16) << 24;
+        } else {
+            value = read.mid(0, 2).toLongLong(NULL, 16);
+            value |= read.mid(2, 2).toLongLong(NULL, 16) << 8;
+            value |= read.mid(4, 2).toLongLong(NULL, 16) << 16;
+            value |= read.mid(6, 2).toLongLong(NULL, 16) << 24;
+            value |= read.mid(8, 2).toLongLong(NULL, 16) << 32;
+            value |= read.mid(10, 2).toLongLong(NULL, 16) << 40;
+            value |= read.mid(12, 2).toLongLong(NULL, 16) << 48;
+            value |= read.mid(14, 2).toLongLong(NULL, 16) << 56;
+        }
+    }
+    return value;
+}
+
+void Transmit::WriteTargetRegister(quint32 register_number, quint64 value)
+{
+    char temp[1024];
+    QByteArray send;
+
+    sprintf(temp, "P%x=%llx", register_number, value);
+    send.append(temp);
+    TransmitTargetCmd(send);
+    if (WaitForTargetRsp()) {
+        target_rsp_queue.dequeue();
+    }
+}
+
 void Transmit::ExecuteAlgorithm(quint32 cs, quint32 addr, quint32 count, QByteArray buffer)
 {
     QByteArray send;
@@ -283,6 +361,236 @@ void Transmit::ExecuteAlgorithm(quint32 cs, quint32 addr, quint32 count, QByteAr
     if (WaitForTargetRsp()) {
         target_rsp_queue.dequeue();
     }
+}
+
+void Transmit::command_print(const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    QString data_bin = QString::vasprintf(format, ap);
+    va_end(ap);
+    cpuinfo_hex.append(bin_to_hex(data_bin.toLatin1(), data_bin.toLatin1().size()));
+}
+
+void Transmit::NucleiCpuinfo(void)
+{
+    QByteArray temp;
+    quint64 csr_marchid, csr_mimpid, csr_mcfg, csr_micfg, csr_mdcfg,
+            iregion_base, csr_mirgb, csr_mfiocfg, csr_mppicfg, csr_mtlbcfg;
+
+    command_print("----Supported configuration information\n");
+    csr_marchid = ReadTargetRegister(RV_REG_MARCHID);
+    command_print("         MARCHID: %llx\n", csr_marchid);
+    csr_mimpid = ReadTargetRegister(RV_REG_MIMPID);
+    command_print("          MIMPID: %llx\n", csr_mimpid);
+    /* ISA */
+    command_print("             ISA:");
+    if (1 == misa->mxl) {
+        command_print(" RV32");
+    } else {
+        command_print(" RV64");
+    }
+    for (int i = 0; i < EXTENSION_NUM; i++) {
+        if (misa->value & BIT(i)) {
+            if ('X' == ('A' + i)) {
+                command_print(" Zc XLCZ");
+            } else {
+                command_print(" %c", 'A' + i);
+            }
+        }
+    }
+    command_print("\n");
+    /* Support */
+    csr_mcfg = ReadTargetRegister(RV_REG_MCFG_INFO);
+    command_print("            MCFG:");
+    if (csr_mcfg & BIT(0)) {
+        command_print(" TEE");
+    }
+    if (csr_mcfg & BIT(1)) {
+        command_print(" ECC");
+    }
+    if (csr_mcfg & BIT(2)) {
+        command_print(" ECLIC");
+    }
+    if (csr_mcfg & BIT(3)) {
+        command_print(" PLIC");
+    }
+    if (csr_mcfg & BIT(4)) {
+        command_print(" FIO");
+    }
+    if (csr_mcfg & BIT(5)) {
+        command_print(" PPI");
+    }
+    if (csr_mcfg & BIT(6)) {
+        command_print(" NICE");
+    }
+    if (csr_mcfg & BIT(7)) {
+        command_print(" ILM");
+    }
+    if (csr_mcfg & BIT(8)) {
+        command_print(" DLM");
+    }
+    if (csr_mcfg & BIT(9)) {
+        command_print(" ICACHE");
+    }
+    if (csr_mcfg & BIT(10)) {
+        command_print(" DCACHE");
+    }
+    if (csr_mcfg & BIT(11)) {
+        command_print(" SMP");
+    }
+    if (csr_mcfg & BIT(12)) {
+        command_print(" DSP-N1");
+    }
+    if (csr_mcfg & BIT(13)) {
+        command_print(" DSP-N2");
+    }
+    if (csr_mcfg & BIT(14)) {
+        command_print(" DSP-N3");
+    }
+    if (csr_mcfg & BIT(16)) {
+        command_print(" IREGION");
+    }
+    if (csr_mcfg & BIT(20)) {
+        command_print(" ETRACE");
+    }
+    command_print("\n");
+    /* ILM */
+    if (csr_mcfg & BIT(7)) {
+        csr_micfg = ReadTargetRegister(RV_REG_MICFG_INFO);
+        command_print("             ILM:");
+        print_size(POWER_FOR_TWO(EXTRACT_FIELD(csr_micfg, 0x1F << 16) - 1) * 256);
+        if (csr_micfg & BIT(21)) {
+            command_print(" execute-only");
+        }
+        if (csr_micfg & BIT(22)) {
+            command_print(" has-ecc");
+        }
+        command_print("\n");
+    }
+    /* DLM */
+    if (csr_mcfg & BIT(8)) {
+        csr_mdcfg = ReadTargetRegister(RV_REG_MDCFG_INFO);
+        command_print("             DLM:");
+        print_size(POWER_FOR_TWO(EXTRACT_FIELD(csr_mdcfg, 0x1F << 16) - 1) * 256);
+        if (csr_mdcfg & BIT(21)) {
+            command_print(" has-ecc");
+        }
+        command_print("\n");
+    }
+    /* ICACHE */
+    if (csr_mcfg & BIT(9)) {
+        csr_micfg = ReadTargetRegister(RV_REG_MICFG_INFO);
+        command_print("          ICACHE:");
+        show_cache_info(POWER_FOR_TWO(EXTRACT_FIELD(csr_micfg, 0xF) +3),
+                        EXTRACT_FIELD(csr_micfg, 0x7 << 4) + 1,
+                        POWER_FOR_TWO(EXTRACT_FIELD(csr_micfg, 0x7 << 7) + 2));
+    }
+    /* DCACHE */
+    if (csr_mcfg & BIT(10)) {
+        csr_mdcfg = ReadTargetRegister(RV_REG_MDCFG_INFO);
+        command_print("          DCACHE:");
+        show_cache_info(POWER_FOR_TWO(EXTRACT_FIELD(csr_mdcfg, 0xF) +3),
+                        EXTRACT_FIELD(csr_mdcfg, 0x7 << 4) + 1,
+                        POWER_FOR_TWO(EXTRACT_FIELD(csr_mdcfg, 0x7 << 7) + 2));
+    }
+    /* IREGION */
+    if (csr_mcfg & BIT(16)) {
+        csr_mirgb = ReadTargetRegister(RV_REG_MIRGB_INFO);
+        command_print("         IREGION:");
+        iregion_base = csr_mirgb & (~0x3FF);
+        command_print(" %#lx", iregion_base);
+        print_size(POWER_FOR_TWO(EXTRACT_FIELD(csr_mirgb, 0xF << 1) - 1) * KB);
+        command_print("\n");
+        command_print("                  Unit        Size        Address\n");
+        command_print("                  INFO        64KB        %#lx\n", iregion_base);
+        command_print("                  DEBUG       64KB        %#lx\n", iregion_base + 0x10000);
+        if (csr_mcfg & BIT(2)) {
+            command_print("                  ECLIC       64KB        %#lx\n", iregion_base + 0x20000);
+        }
+        command_print("                  TIMER       64KB        %#lx\n", iregion_base + 0x30000);
+        if (csr_mcfg & BIT(11)) {
+            command_print("                  SMP&CC      64KB        %#lx\n", iregion_base + 0x40000);
+        }
+        uint64_t smp_cfg = ReadTargetMemory(iregion_base + 0x40004, 4).toLongLong(NULL, 16);
+        if ((csr_mcfg & BIT(2)) && (EXTRACT_FIELD(smp_cfg, 0x1F << 1) >= 2)) {
+            command_print("                  CIDU        64KB        %#lx\n", iregion_base + 0x50000);
+        }
+        if (csr_mcfg & BIT(3)) {
+            command_print("                  PLIC        64MB        %#lx\n", iregion_base + 0x4000000);
+        }
+        /* SMP */
+        if (csr_mcfg & BIT(11)) {
+            command_print("         SMP_CFG:");
+            command_print(" CC_PRESENT=%ld", EXTRACT_FIELD(smp_cfg, 0x1));
+            command_print(" SMP_CORE_NUM=%ld", EXTRACT_FIELD(smp_cfg, 0x1F << 1));
+            command_print(" IOCP_NUM=%ld", EXTRACT_FIELD(smp_cfg, 0x3F << 7));
+            command_print(" PMON_NUM=%ld\n", EXTRACT_FIELD(smp_cfg, 0x3F << 13));
+        }
+        /* L2CACHE */
+        if (smp_cfg & 0x1) {
+            command_print("         L2CACHE:");
+            uint64_t cc_cfg = ReadTargetMemory(iregion_base + 0x40008, 4).toLongLong(NULL, 16);
+            show_cache_info(POWER_FOR_TWO(EXTRACT_FIELD(cc_cfg, 0xF)), EXTRACT_FIELD(cc_cfg, 0x7 << 4) + 1,
+                            POWER_FOR_TWO(EXTRACT_FIELD(cc_cfg, 0x7 << 7) + 2));
+        }
+        /* INFO */
+        command_print("     INFO-Detail:\n");
+        uint64_t mpasize = ReadTargetMemory(iregion_base, 4).toLongLong(NULL, 16);
+        command_print("                  mpasize : %ld\n", mpasize);
+        uint64_t cmo_info = ReadTargetMemory(iregion_base + 4, 4).toLongLong(NULL, 16);
+        if (cmo_info & 0x1) {
+            command_print("                  cbozero : %ldByte\n", POWER_FOR_TWO(EXTRACT_FIELD(cmo_info, 0xF << 6) + 2));
+            command_print("                  cmo     : %ldByte\n", POWER_FOR_TWO(EXTRACT_FIELD(cmo_info, 0xF << 2) + 2));
+            if (cmo_info & 0x2) {
+                command_print("                  has_prefecth\n");
+            }
+        }
+        uint64_t mcppi_cfg_lo = ReadTargetMemory(iregion_base + 80, 4).toLongLong(NULL, 16);
+        uint64_t mcppi_cfg_hi = ReadTargetMemory(iregion_base + 84, 4).toLongLong(NULL, 16);
+        if (mcppi_cfg_lo & 0x1) {
+            if (1 == misa->mxl) {
+                command_print("                  cppi    : %#lx", mcppi_cfg_lo & (~0x3FF));
+            } else {
+                command_print("                  cppi    : %#lx", (mcppi_cfg_hi << 32) | (mcppi_cfg_lo & (~0x3FF)));
+            }
+            print_size(POWER_FOR_TWO(EXTRACT_FIELD(mcppi_cfg_lo, 0xF << 1) - 1) * KB);
+            command_print("\n");
+        }
+    }
+    /* TLB */
+    if (csr_mcfg & BIT(3)) {
+        csr_mtlbcfg = ReadTargetRegister(RV_REG_MTLBCFG_INFO);
+        if (csr_mtlbcfg) {
+            command_print("            DTLB: %ld entry\n", EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 19));
+            command_print("            ITLB: %ld entry\n", EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 16));
+            command_print("            MTLB:");
+            command_print(" %ld entry", POWER_FOR_TWO(EXTRACT_FIELD(csr_mtlbcfg, 0xF) + 3) *
+                                            (EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 4) + 1) *
+                                            (EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 7) - 1));
+            if (csr_mtlbcfg & BIT(10)) {
+                command_print(" has_ecc");
+            }
+            command_print("\n");
+        }
+    }
+    /* FIO */
+    if (csr_mcfg & BIT(4)) {
+        csr_mfiocfg = ReadTargetRegister(RV_REG_MFIOCFG_INFO);
+        command_print("             FIO:");
+        command_print(" %#lx", csr_mfiocfg & (~0x3FF));
+        print_size(POWER_FOR_TWO(EXTRACT_FIELD(csr_mfiocfg, 0xF << 1) - 1) * KB);
+        command_print("\n");
+    }
+    /* PPI */
+    if (csr_mcfg & BIT(5)) {
+        csr_mppicfg = ReadTargetRegister(RV_REG_MPPICFG_INFO);
+        command_print("             PPI:");
+        command_print(" %#lx", csr_mppicfg & (~0x3FF));
+        print_size(POWER_FOR_TWO(EXTRACT_FIELD(csr_mppicfg, 0xF << 1) - 1) * KB);
+        command_print("\n");
+    }
+    command_print("----End of cpuinfo\n");
 }
 
 QByteArray Transmit::TransmitTargetRsp(QByteArray msg)
@@ -384,9 +692,16 @@ void Transmit::TransmitServerCmdDeal(QByteArray msg)
             send.append(regxml->GetRegXml(addr).constData(), len);
             TransmitServerRsp(send);
         } else if (strncmp(msg.constData(), "qRcmd,", 6) == 0) {
-            TransmitTargetCmd(msg);
-            if (WaitForTargetRsp()) {
-                TransmitServerRsp(target_rsp_queue.dequeue());
+            cache = hex_to_bin(msg.mid(msg.indexOf(',') + 1), msg.length() - msg.indexOf(','));
+            if (strncmp(cache.constData(), "nuclei cpuinfo", strlen("nuclei cpuinfo")) == 0) {
+                cpuinfo_hex.clear();
+                NucleiCpuinfo();
+                TransmitServerRsp(cpuinfo_hex);
+            } else {
+                TransmitTargetCmd(msg);
+                if (WaitForTargetRsp()) {
+                    TransmitServerRsp(target_rsp_queue.dequeue());
+                }
             }
         } else {
             /* Not support 'q' command, reply empty. */
