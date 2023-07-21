@@ -31,18 +31,18 @@ bool debug = false;
 #define POWER_FOR_TWO(n)          (1 << (n))
 #define EXTRACT_FIELD(val, which) (((val) & (which)) / ((which) & ~((which)-1)))
 #define print_size(bytes) do {\
-    if ((bytes) / GB) {\
-        command_print(" %ldGB", (bytes) / GB);\
-    } else if ((bytes) / MB) {\
-        command_print(" %ldMB", (bytes) / MB);\
-    } else if ((bytes) / KB) {\
-        command_print(" %ldKB", (bytes) / KB);\
+    if (bytes / GB) {\
+        command_print(" %ldGB", bytes / GB);\
+    } else if (bytes / MB) {\
+        command_print(" %ldMB", bytes / MB);\
+    } else if (bytes / KB) {\
+        command_print(" %ldKB", bytes / KB);\
     } else {\
-        command_print(" %ldByte", (bytes));\
+        command_print(" %ldByte", bytes);\
     }\
 } while(0);
 #define show_cache_info(set, way, lsize) do {\
-    print_size(set * way * lsize);\
+    print_size((set) * (way) * (lsize));\
     command_print("(set=%ld,", set);\
     command_print("way=%ld,", way);\
     command_print("lsize=%ld)\n", lsize);\
