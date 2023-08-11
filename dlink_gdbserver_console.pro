@@ -11,23 +11,31 @@ CONFIG -= app_bundle
 SOURCES += \
     main_console.cpp \
     source/application_console.cpp \
+    source/cpuinfo.cpp \
+    source/etrace.cpp \
     source/memxml.cpp \
     source/misa.cpp \
     source/regxml.cpp \
+    source/serial.cpp \
     source/server.cpp \
     source/target.cpp \
     source/transmit.cpp \
-    source/algorithm.cpp
+    source/algorithm.cpp \
+    source/type.cpp
 
 HEADERS += \
+    include/algorithm.h \
     include/application_console.h \
+    include/cpuinfo.h \
+    include/etrace.h \
     include/memxml.h \
     include/misa.h \
     include/regxml.h \
+    include/serial.h \
     include/server.h \
     include/target.h \
     include/transmit.h \
-    include/algorithm.h
+    include/type.h
 
 RC_ICONS = logo.ico
 
