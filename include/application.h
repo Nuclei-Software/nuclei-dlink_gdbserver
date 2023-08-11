@@ -1,32 +1,28 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
+#include <QFile>
 #include <QObject>
-#include "../include/mainwindow.h"
-#include "../include/logout.h"
-#include "../include/transmit.h"
-#include "../include/target.h"
-#include "../include/server.h"
+#include "mainwindow.h"
+#include "logout.h"
+#include "transmit.h"
 
 class Application : public QObject
 {
     Q_OBJECT
 public:
     explicit Application(QObject *parent = nullptr);
-    void ApplicationInit(int argc, char *argv[]);
 
-signals:
+    void Init(int argc, char *argv[]);
 
 private:
     MainWindow* mainwindow;
     Logout* logout;
     Transmit* transmit;
-    Target* target;
-    Server* server;
 
 public slots:
-    void ApplicationConnect(QString cfg_path);
-    void ApplicationDisconnect();
+    void Connect(QString cfg_path);
+    void Disconnect();
 };
 
 #endif // APPLICATION_H

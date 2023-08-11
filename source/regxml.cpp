@@ -110,7 +110,7 @@ void RegXml::InitRegXml(Misa* misa, quint64 vlenb)
     regxml.append("</target>");
 }
 
-quint32 RegXml::GetRegXmlLen(void)
+quint32 RegXml::GetRegXmlLen()
 {
     return regxml.size();
 }

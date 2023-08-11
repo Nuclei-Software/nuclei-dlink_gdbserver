@@ -18,10 +18,10 @@ private:
     bool close_flag;
 
 signals:
-    void LogoutToUI(QString);
+    void Toui(QString);
 
 public slots:
-    void LogoutClose();
+    void Close();
 };
 
 #endif // LOGOUT_H

@@ -6,7 +6,7 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
 
     Application app;
-    app.ApplicationInit(argc, argv);
+    app.Init(argc, argv);
 
     return a.exec();
 }

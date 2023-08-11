@@ -2,7 +2,7 @@
 #define REGXML_H
 
 #include <QObject>
-#include "../include/misa.h"
+#include "misa.h"
 
 class RegXml : public QObject
 {
@@ -10,7 +10,7 @@ class RegXml : public QObject
 public:
     explicit RegXml(QObject *parent = nullptr);
     void InitRegXml(Misa* misa, quint64 vlenb);
-    quint32 GetRegXmlLen(void);
+    quint32 GetRegXmlLen();
     QByteArray GetRegXml(quint32 addr);
 
 private:

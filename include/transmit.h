@@ -5,62 +5,45 @@
 #include <QThread>
 #include <QDebug>
 #include <QQueue>
-#include <QFile>
-#include "../include/misa.h"
-#include "../include/regxml.h"
-#include "../include/memxml.h"
-#include "../include/algorithm.h"
+#include "type.h"
+#include "server.h"
+#include "target.h"
+#include "memxml.h"
+#include "regxml.h"
+#include "cpuinfo.h"
+#include "etrace.h"
+#include "algorithm.h"
 
 class Transmit : public QThread
 {
     Q_OBJECT
 public:
     Transmit();
-    void TransmitInit();
-    void TransmitDeinit();
+    void Reset();
+    void Init();
+    void Deinit();
 
     QString protocol;
-    Algorithm::flash_t flash;
-    Algorithm::workarea_t workarea;
+    Server* server;
+    Target* target;
+    Algorithm* algorithm;
 
 protected:
     void run() override;
 
 private:
-    QByteArray TransmitPackage(QByteArray msg);
-    bool WaitForTargetRsp();
-    QByteArray ReadTargetMemory(quint32 memory_addr, quint32 length);
-    void WriteTargetMemory(quint32 memory_addr, QByteArray data, quint32 length);
-    quint64 ReadTargetRegister(quint32 register_number);
-    void WriteTargetRegister(quint32 register_number, quint64 value);
-    void ExecuteAlgorithm(quint32 cs, quint32 addr, quint32 count, QByteArray buffer);
-    void command_print(const char *format, ...);
-    void NucleiCpuinfo(void);
-    QByteArray TransmitTargetRsp(QByteArray msg);
-    void TransmitTargetCmd(QByteArray msg);
-    void TransmitServerCmdDeal(QByteArray msg);
-    void TransmitServerCmd(QByteArray msg);
-    void TransmitServerRsp(QByteArray msg);
+    void ServerCmdDeal(QByteArray msg);
 
     bool close_flag;
-    bool noack_mode;
-    quint32 packet_size;
-    quint32 loader_addr;
-    quint32 buffer_addr;
-    Misa* misa;
-    RegXml* regxml;
+    bool target_run_flag;
+    Type* type;
     MemXml* memxml;
-    Algorithm* algorithm;
-    bool server_reply_flag;
-    QByteArray current_command;
-    QByteArray cpuinfo_hex;
-
-signals:
-    void TransmitToTarget(QByteArray);
-    void TransmitToServer(QByteArray);
+    RegXml* regxml;
+    Cpuinfo* cpuinfo;
+    Etrace* etrace;
 
 public slots:
-    void TransmitClose();
+    void Close();
 };
 
 #endif // TRANSMIT_H

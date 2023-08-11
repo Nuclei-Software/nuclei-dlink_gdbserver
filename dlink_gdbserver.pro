@@ -11,27 +11,35 @@ CONFIG += c++17
 SOURCES += \
     main.cpp \
     source/application.cpp \
+    source/cpuinfo.cpp \
+    source/etrace.cpp \
     source/logout.cpp \
     source/mainwindow.cpp \
     source/memxml.cpp \
     source/misa.cpp \
     source/regxml.cpp \
+    source/serial.cpp \
     source/server.cpp \
     source/target.cpp \
     source/transmit.cpp \
-    source/algorithm.cpp
+    source/algorithm.cpp \
+    source/type.cpp
 
 HEADERS += \
     include/algorithm.h \
     include/application.h \
+    include/cpuinfo.h \
+    include/etrace.h \
     include/logout.h \
     include/mainwindow.h \
     include/memxml.h \
     include/misa.h \
     include/regxml.h \
+    include/serial.h \
     include/server.h \
     include/target.h \
-    include/transmit.h
+    include/transmit.h \
+    include/type.h
 
 FORMS += \
     forms/mainwindow.ui

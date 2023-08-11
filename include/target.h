@@ -3,31 +3,30 @@
 
 #include <QObject>
 #include <QDebug>
-#include <QSerialPort>
-#include <QSerialPortInfo>
-#include <QQueue>
+#include "type.h"
+#include "serial.h"
+#include "misa.h"
 
 class Target : public QObject
 {
     Q_OBJECT
 public:
     explicit Target(QObject *parent = nullptr);
-    void TargetInit();
-    void TargetDeinit();
 
-    QString target_serial_name;
-    qint32 target_serial_baud;
-    QString target_serial_number;
+    Serial* serial;
+    Misa* misa;
+
+    void Init();
+    void Deinit();
+    void SendCmd(QByteArray msg);
+    QByteArray GetRsp();
+    void WriteMemory(quint64 addr, QByteArray data, quint32 length);
+    QByteArray ReadMemory(quint64 addr, quint32 length);
+    void WriteRegister(quint32 number, quint64 value);
+    quint64 ReadRegister(quint32 number);
 
 private:
-    QSerialPort* target_serial_port;
-    QByteArray target_msg;
-
-private slots:
-    void TargetSerialReadyRead();
-
-public slots:
-    void TargetWrite(QByteArray msg);
+    Type* type;
 };
 
 #endif // TARGET_H

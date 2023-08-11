@@ -16,12 +16,12 @@ void Logout::run()
             break;
         }
         if (!log_queue.empty()) {
-            emit LogoutToUI(log_queue.dequeue());
+            emit Toui(log_queue.dequeue());
         }
     }
 }
 
-void Logout::LogoutClose()
+void Logout::Close()
 {
     close_flag = true;
 }

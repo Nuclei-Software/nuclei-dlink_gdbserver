@@ -2,67 +2,91 @@
 
 extern bool debug;
 
-QQueue<QByteArray> server_cmd_queue;
-
 Server::Server(QObject *parent) : QObject(parent)
 {
-    server_tcp = new QTcpServer;
-    server_socket = new QTcpSocket;
+    type = new Type;
+    TcpServer = new QTcpServer;
+    TcpSocket = new QTcpSocket;
+    connect(this, SIGNAL(readyWrite(QByteArray)), this, SLOT(ReadyWrite(QByteArray)));
 }
 
-void Server::ServerInit()
+void Server::Init()
 {
-    if (server_tcp->listen(QHostAddress::Any, server_port)) {
-        qDebug() << "Server listen to port:" << server_port;
+    if (TcpServer->listen(QHostAddress::Any, Port)) {
+        qDebug() << "Server listen to port:" << Port;
     } else {
-        qDebug() << "Server fail listen to port:" << server_port;
+        qDebug() << "Server fail listen to port:" << Port;
         return;
     }
-    connect(server_tcp, SIGNAL(newConnection()), this, SLOT(ServerNewConnect()));
+    connect(TcpServer, SIGNAL(newConnection()), this, SLOT(Connect()));
 }
 
-void Server::ServerDeinit()
+void Server::Deinit()
 {
-    disconnect(server_socket, 0, 0, 0);
-    server_socket->close();
-    disconnect(server_tcp, 0, 0, 0);
-    server_tcp->close();
-    qDebug() << "Close:" << server_port;
+    Disconnect();
+    disconnect(TcpServer, 0, 0, 0);
+    TcpServer->close();
+    qDebug() << "Server Close:" << Port;
+    Port = 0;
 }
 
-void Server::ServerNewConnect()
+void Server::Connect()
 {
-    server_socket = server_tcp->nextPendingConnection();
-    connect(server_socket, SIGNAL(readyRead()), this, SLOT(ServerSocketRead()));
-    connect(server_socket, SIGNAL(disconnected()), this, SLOT(ServerSocketDisconnect()));
-    qDebug() << "Server socket connect:" << server_port;
+    TcpSocket = TcpServer->nextPendingConnection();
+    connect(TcpSocket, SIGNAL(readyRead()), this, SLOT(ReadyRead()));
+    connect(TcpSocket, SIGNAL(disconnected()), this, SLOT(Disconnect()));
+    qDebug() << "Server socket connect:" << Port;
 }
 
-void Server::ServerSocketRead()
+void Server::Disconnect()
 {
-    QByteArray msg = server_socket->readAll();
-    if (debug) {
-        qDebug() << "S->:" << msg;
-    }
-    if ((msg.contains('$')) && (msg.contains('#'))) {
-        server_cmd_queue.enqueue(msg);
-    } else if (msg[0] == '\x03') {
-        server_cmd_queue.enqueue(msg);
-    } else {
-        qDebug() << "S->:Other Command:" << msg;
-    }
+    TcpSocket->disconnect();
+    qDebug() << "Server socket disconnect:";
+    disconnect(TcpSocket, 0, 0, 0);
+    TcpSocket->close();
+    Message.clear();
 }
 
-void Server::ServerSocketDisconnect()
+void Server::ReadyRead()
 {
-    server_socket->disconnect();
-    qDebug() << "Server socket disconnect:" << server_port;
+    Message.append(TcpSocket->readAll());
 }
 
-void Server::ServerWrite(QByteArray msg)
+void Server::ReadyWrite(QByteArray msg)
+{
+    TcpSocket->write(msg);
+}
+
+void Server::Write(QByteArray msg)
 {
     if (debug) {
-        qDebug() << "->S:" << msg;
+        qDebug() << "->S:" << type->pack(msg);
     }
-    server_socket->write(msg);
+    emit readyWrite(type->pack(msg));
+}
+
+QByteArray Server::Read()
+{
+    QByteArray Temp;
+    if (Message.size()) {
+        if (Message.contains('$') && Message.contains('#')) {
+            while(1) {
+                if (Message[0] == '$') {
+                    Temp = Message.mid(0, Message.indexOf('#') + 1);
+                    Message.remove(0, Message.indexOf('#') + 4);
+                    break;
+                }
+                Message.removeFirst();
+            }
+        } else if (Message[0] == '\x03') {
+            Temp.append(Message[0]);
+            Message.removeFirst();
+        } else {
+            Message.removeFirst();
+        }
+        if (debug) {
+            qDebug() << "S->:" << Temp;
+        }
+    }
+    return type->unpack(Temp);
 }

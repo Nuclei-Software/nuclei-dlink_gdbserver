@@ -2,8 +2,8 @@
 #define MEMXML_H
 
 #include <QObject>
-#include "../include/misa.h"
-#include "../include/algorithm.h"
+#include "misa.h"
+#include "algorithm.h"
 
 class MemXml : public QObject
 {
@@ -11,14 +11,14 @@ class MemXml : public QObject
 public:
     explicit MemXml(QObject *parent = nullptr);
 
-    void AddFlash(Algorithm::flash_t flash);
+    Algorithm::flash_t flash;
+
     void InitMemXml(Misa* misa);
-    quint32 GetMemXmlLen(void);
+    quint32 GetMemXmlLen();
     QByteArray GetMemXml(quint32 addr);
 
 private:
     QByteArray memxml;
-    QList<Algorithm::flash_t> flashs;
 
 signals:
 

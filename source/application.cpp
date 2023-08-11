@@ -1,6 +1,8 @@
 #include "../include/application.h"
 
-extern bool debug;
+bool debug = false;
+bool noack_mode = false;
+quint64 target_packet_max = 0x400;
 
 Application::Application(QObject *parent)
     : QObject{parent}
@@ -8,27 +10,26 @@ Application::Application(QObject *parent)
     mainwindow = new MainWindow;
     logout = new Logout;
     transmit = new Transmit;
-    target = new Target;
-    server = new Server;
-
     logout->start();
 }
 
-void Application::ApplicationInit(int argc, char *argv[])
+void Application::Init(int argc, char *argv[])
 {
     mainwindow->setWindowTitle("Nuclei Dlink GDB Server");
     mainwindow->install_message_handler();
     mainwindow->show();
-    connect(mainwindow, SIGNAL(Close()), logout, SLOT(LogoutClose()));
-    connect(mainwindow, SIGNAL(Close()), transmit, SLOT(TransmitClose()));
-    connect(logout, SIGNAL(LogoutToUI(QString)), mainwindow, SLOT(output_log(QString)));
-    connect(mainwindow, SIGNAL(Connect(QString)), this, SLOT(ApplicationConnect(QString)));
-    connect(mainwindow, SIGNAL(Disconnect()), this, SLOT(ApplicationDisconnect()));
+    connect(mainwindow, SIGNAL(Close()), logout, SLOT(Close()));
+    connect(mainwindow, SIGNAL(Close()), transmit, SLOT(Close()));
+    connect(logout, SIGNAL(Toui(QString)), mainwindow, SLOT(output_log(QString)));
+    connect(mainwindow, SIGNAL(Connect(QString)), this, SLOT(Connect(QString)));
+    connect(mainwindow, SIGNAL(Disconnect()), this, SLOT(Disconnect()));
 }
 
-void Application::ApplicationConnect(QString cfg_path)
+void Application::Connect(QString cfg_path)
 {
     QFile cfg(cfg_path);
+
+    transmit->Reset();
 
     if (cfg.exists()) {
         cfg.open(QIODevice::ReadOnly | QIODevice::Text);
@@ -50,17 +51,17 @@ void Application::ApplicationConnect(QString cfg_path)
             //gdb command group
             if (0 == command[0].compare("gdb")) {
                 if (0 == command[1].compare("port")) {
-                    server->server_port = command[2].toUShort(nullptr, 10);
+                    transmit->server->Port = command[2].toUShort(nullptr, 10);
                 }
             }
             //serial command group
             if (0 == command[0].compare("serial")) {
                 if (0 == command[1].compare("port")) {
-                    target->target_serial_name = command[2];
+                    transmit->target->serial->SerialName = command[2];
                 } else if (0 == command[1].compare("baud")) {
-                    target->target_serial_baud = command[2].toUInt(nullptr, 10);
+                    transmit->target->serial->SerialBaud = command[2].toUInt(nullptr, 10);
                 } else if (0 == command[1].compare("number")) {
-                    target->target_serial_number = command[2];
+                    transmit->target->serial->SerialNumber = command[2];
                 }
             }
             //transport command group
@@ -72,37 +73,37 @@ void Application::ApplicationConnect(QString cfg_path)
             //workarea command group
             if (0 == command[0].compare("workarea")) {
                 if (0 == command[1].compare("addr")) {
-                    transmit->workarea.addr = command[2].toUInt(nullptr, 16);
+                    transmit->algorithm->workarea.addr = command[2].toUInt(nullptr, 16);
                 } else if (0 == command[1].compare("size")) {
-                    transmit->workarea.size = command[2].toUInt(nullptr, 16);
+                    transmit->algorithm->workarea.size = command[2].toUInt(nullptr, 16);
                 } else if (0 == command[1].compare("backup")) {
                     if (0 == command[2].compare("true")) {
-                        transmit->workarea.backup = true;
+                        transmit->algorithm->workarea.backup = true;
                     } else {
-                        transmit->workarea.backup = false;
+                        transmit->algorithm->workarea.backup = false;
                     }
                 }
             }
             //flash command group
             if (0 == command[0].compare("flash")) {
                 if (0 == command[1].compare("spi_base")) {
-                    transmit->flash.spi_base = command[2].toUInt(nullptr, 16);
+                    transmit->algorithm->flash.spi_base = command[2].toUInt(nullptr, 16);
                 } else if (0 == command[1].compare("xip_base")) {
-                    transmit->flash.xip_base = command[2].toUInt(nullptr, 16);
+                    transmit->algorithm->flash.xip_base = command[2].toUInt(nullptr, 16);
                 } else if (0 == command[1].compare("xip_size")) {
-                    transmit->flash.xip_size = command[2].toUInt(nullptr, 16);
+                    transmit->algorithm->flash.xip_size = command[2].toUInt(nullptr, 16);
                 } else if (0 == command[1].compare("block_size")) {
-                    transmit->flash.block_size = command[2].toUInt(nullptr, 16);
+                    transmit->algorithm->flash.block_size = command[2].toUInt(nullptr, 16);
                 } else if (0 == command[1].compare("loader_path")) {
                     if (QFile::exists(command[2])) {
-                        transmit->flash.loader_path = command[2];
+                        transmit->algorithm->flash.loader_path = command[2];
                     } else {
 #ifdef WIN32
-                        transmit->flash.loader_path = cfg_path.mid(0, cfg_path.lastIndexOf('/') + 1) +
-                                                      command[2].mid(command[2].lastIndexOf('\\') + 1);
+                        transmit->algorithm->flash.loader_path = cfg_path.mid(0, cfg_path.lastIndexOf('/') + 1) +
+                                                    command[2].mid(command[2].lastIndexOf('\\') + 1);
 #else
-                        transmit->flash.loader_path = cfg_path.mid(0, cfg_path.lastIndexOf('/')) +
-                                                      command[2].mid(command[2].lastIndexOf('/'));
+                        transmit->algorithm->flash.loader_path = cfg_path.mid(0, cfg_path.lastIndexOf('/')) +
+                                                    command[2].mid(command[2].lastIndexOf('/'));
 #endif
                     }
                 }
@@ -114,26 +115,15 @@ void Application::ApplicationConnect(QString cfg_path)
         exit(-1);
     }
 
-    connect(transmit, SIGNAL(TransmitToTarget(QByteArray)), target, SLOT(TargetWrite(QByteArray)));
-    connect(transmit, SIGNAL(TransmitToServer(QByteArray)), server, SLOT(ServerWrite(QByteArray)));
-
-    transmit->TransmitInit();
-    target->TargetInit();
-    server->ServerInit();
-
+    transmit->Init();
     transmit->start();
 }
 
-void Application::ApplicationDisconnect()
+void Application::Disconnect()
 {
-    transmit->TransmitClose();
-    transmit->TransmitDeinit();
-    target->TargetDeinit();
-    server->ServerDeinit();
-
+    transmit->Deinit();
     disconnect(transmit, 0, 0, 0);
-    disconnect(target, 0, 0, 0);
-    disconnect(server, 0, 0, 0);
+    transmit->Close();
 
     qDebug() << "Disconnect";
 }
