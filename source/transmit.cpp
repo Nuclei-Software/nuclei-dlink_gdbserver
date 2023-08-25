@@ -182,6 +182,18 @@ void Transmit::ServerCmdDeal(QByteArray msg)
                         } else {
                             command_error = true;
                         }
+                    } else if (cache.contains("etrace") && cache.contains("clear")) {
+                        if (commands.count() == 3) {
+                            etrace->Clear(target);
+                        } else {
+                            command_error = true;
+                        }
+                    } else if (cache.contains("etrace") && cache.contains("info")) {
+                        if (commands.count() == 3) {
+                            etrace->Info(target, server);
+                        } else {
+                            command_error = true;
+                        }
                     } else {
                         command_error = true;
                     }
@@ -193,6 +205,8 @@ void Transmit::ServerCmdDeal(QByteArray msg)
                         send.append("nuclei etrace start\n");
                         send.append("nuclei etrace stop\n");
                         send.append("nuclei etrace dump file_path\n");
+                        send.append("nuclei etrace clear\n");
+                        send.append("nuclei etrace info\n");
                         server->Write(type->bin_to_hex(send, send.size()));
                     }
                 } else {

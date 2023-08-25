@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QFile>
 #include "target.h"
+#include "server.h"
 #include "type.h"
 
 class Etrace : public QObject
@@ -18,15 +19,19 @@ public:
     quint64 timeout;
     quint64 wrap;
 
+    void CommandPrint(const char *format, ...);
     void Config(Target* target);
     void Enable(Target* target);
     void Disable(Target* target);
     void Start(Target* target);
     void Stop(Target* target);
     void Dump(Target* target, QString file_path);
+    void Clear(Target* target);
+    void Info(Target* target, Server* server);
 
 private:
     Type* type;
+    QByteArray info_hex;
 };
 
 #endif // ETRACE_H

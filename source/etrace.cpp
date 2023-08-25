@@ -42,6 +42,15 @@ Etrace::Etrace(QObject *parent)
     type = new Type;
 }
 
+void Etrace::CommandPrint(const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    QString data_bin = QString::vasprintf(format, ap);
+    va_end(ap);
+    info_hex.append(type->bin_to_hex(data_bin.toLatin1(), data_bin.toLatin1().size()));
+}
+
 void Etrace::Config(Target* target)
 {
     target->WriteMemory(etrace_addr + ETRACE_BASE_HI,
@@ -165,4 +174,40 @@ void Etrace::Dump(Target* target, QString file_path)
     read = target->ReadMemory(address, size);
     etrace_f.write(read);
     etrace_f.close();
+}
+
+void Etrace::Clear(Target* target)
+{
+    Stop(target);
+
+    target->WriteMemory(etrace_addr + ETRACE_ENDOFFSET,
+                        type->uint32_to_hex_le(0),
+                        4);
+    target->WriteMemory(etrace_addr + ETRACE_FLG,
+                        type->uint32_to_hex_le(0),
+                        4);
+}
+
+void Etrace::Info(Target* target, Server* server)
+{
+    QByteArray read;
+    quint32 end_offset;
+    quint32 full_flag;
+
+    read = target->ReadMemory(etrace_addr + ETRACE_ENDOFFSET, 4);
+    end_offset = type->hex_to_uint32_le(read);
+    read = target->ReadMemory(etrace_addr + ETRACE_FLG, 4);
+    full_flag = type->hex_to_uint32_le(read);
+
+    info_hex.clear();
+    CommandPrint("Etrace Base: %#llx\n", etrace_addr);
+    CommandPrint("Buffer Addr: %#llx\n", buffer_addr);
+    CommandPrint("Buffer Size: %#llx\n", buffer_size);
+    CommandPrint("Buffer Status: ");
+    if (full_flag) {
+        CommandPrint("used 100%% from %#llx [wraped]\n", buffer_addr + end_offset);
+    } else {
+        CommandPrint("used %d%% from %#llx to %#llx\n", (end_offset * 100) / buffer_size, buffer_addr, buffer_addr + end_offset);
+    }
+    server->Write(info_hex);
 }
