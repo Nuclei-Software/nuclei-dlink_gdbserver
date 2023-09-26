@@ -16,7 +16,6 @@ public:
     quint64 etrace_addr;
     quint64 buffer_addr;
     quint64 buffer_size;
-    quint64 timeout;
     quint64 wrap;
 
     void CommandPrint(const char *format, ...);

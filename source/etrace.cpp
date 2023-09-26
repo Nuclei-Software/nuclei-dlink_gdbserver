@@ -62,12 +62,21 @@ void Etrace::Config(Target* target)
     target->WriteMemory(etrace_addr + ETRACE_WLEN,
                         type->uint32_to_hex_le(buffer_size),
                         4);
-    target->WriteMemory(etrace_addr + ETRACE_TIMEOUT,
-                        type->uint32_to_hex_le(timeout),
-                        4);
-    target->WriteMemory(etrace_addr + ETRACE_WRAP,
-                        type->uint32_to_hex_le(wrap),
-                        4);
+    if (wrap) {
+        target->WriteMemory(etrace_addr + ETRACE_WRAP,
+                            type->uint32_to_hex_le(1),
+                            4);
+        target->WriteMemory(etrace_addr + ETRACE_COMPACT,
+                            type->uint32_to_hex_le(0),
+                            4);
+    } else {
+        target->WriteMemory(etrace_addr + ETRACE_WRAP,
+                            type->uint32_to_hex_le(0),
+                            4);
+        target->WriteMemory(etrace_addr + ETRACE_COMPACT,
+                            type->uint32_to_hex_le(1),
+                            4);
+    }
 }
 
 void Etrace::Enable(Target* target)
@@ -127,25 +136,17 @@ void Etrace::Stop(Target* target)
 {
     QByteArray read;
     quint32 temp;
+    quint32 wait_idle = 0x100;
 
-    do {
-        read = target->ReadMemory(etrace_addr + ETRACE_ONGOING, 4);
-        temp = type->hex_to_uint32_le(read);
-    } while(temp);
-    do {
-        read = target->ReadMemory(etrace_addr + ETRACE_FIFO, 4);
-        temp = type->hex_to_uint32_le(read);
-    } while(temp);
-    do {
-        read = target->ReadMemory(etrace_addr + ETRACE_TIMEOUT, 4);
-        temp = type->hex_to_uint32_le(read);
-    } while(temp != 0xFFFFFFFF);
     target->WriteMemory(etrace_addr + ETRACE_ENA,
                         type->uint32_to_hex_le(0),
                         4);
     do {
         read = target->ReadMemory(etrace_addr + ETRACE_IDLE, 4);
         temp = type->hex_to_uint32_le(read);
+        wait_idle -= 1;
+        if (0 == wait_idle)
+            break;
     } while(temp != 1);
 }
 

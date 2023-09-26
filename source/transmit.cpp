@@ -47,7 +47,6 @@ void Transmit::Deinit()
     etrace->etrace_addr = 0;
     etrace->buffer_addr = 0;
     etrace->buffer_size = 0;
-    etrace->timeout = 0;
     etrace->wrap = 0;
 }
 
@@ -142,12 +141,11 @@ void Transmit::ServerCmdDeal(QByteArray msg)
                     if (cache.contains("cpuinfo")) {
                         cpuinfo->ShowInfo(target, server);
                     } else if (cache.contains("etrace") && cache.contains("config")) {
-                        if (commands.count() == 8) {
+                        if (commands.count() == 7) {
                             etrace->etrace_addr = commands[3].toLongLong();
                             etrace->buffer_addr = commands[4].toLongLong();
                             etrace->buffer_size = commands[5].toLongLong();
-                            etrace->timeout = commands[6].toLongLong();
-                            etrace->wrap = commands[7].toLongLong();
+                            etrace->wrap = commands[6].toLongLong();
                             etrace->Config(target);
                         } else {
                             command_error = true;
@@ -199,7 +197,7 @@ void Transmit::ServerCmdDeal(QByteArray msg)
                     }
                     if (command_error) {
                         send.append("nuclei cpuinfo\n");
-                        send.append("nuclei etrace config etrace_addr buffer_addr buffer_size timeout wrap\n");
+                        send.append("nuclei etrace config etrace_addr buffer_addr buffer_size wrap\n");
                         send.append("nuclei etrace enable\n");
                         send.append("nuclei etrace disable\n");
                         send.append("nuclei etrace start\n");
