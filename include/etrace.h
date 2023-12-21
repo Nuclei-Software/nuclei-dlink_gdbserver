@@ -31,6 +31,7 @@ public:
 private:
     Type* type;
     QByteArray info_hex;
+    bool start_flag;
 };
 
 #endif // ETRACE_H

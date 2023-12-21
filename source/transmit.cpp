@@ -135,17 +135,20 @@ void Transmit::ServerCmdDeal(QByteArray msg)
                 server->Write(send);
             } else if (msg.contains("qRcmd,")) {
                 bool command_error = false;
-                cache = type->hex_to_bin(msg.mid(msg.indexOf(',') + 1), msg.length() - msg.indexOf(','));
+                cache = type->hex_to_bin(msg.mid(msg.indexOf(',') + 1), msg.length() - (msg.indexOf(',') + 1));
+                // To Fix QByteArray spilt need a last ' '???
+                cache.append(' ');
                 QList<QByteArray> commands = cache.split(' ');
+                commands.pop_back();
                 if (cache.contains("nuclei")) {
                     if (cache.contains("cpuinfo")) {
                         cpuinfo->ShowInfo(target, server);
                     } else if (cache.contains("etrace") && cache.contains("config")) {
                         if (commands.count() == 7) {
-                            etrace->etrace_addr = commands[3].toLongLong();
-                            etrace->buffer_addr = commands[4].toLongLong();
-                            etrace->buffer_size = commands[5].toLongLong();
-                            etrace->wrap = commands[6].toLongLong();
+                            etrace->etrace_addr = commands[3].toLongLong(NULL, 16);
+                            etrace->buffer_addr = commands[4].toLongLong(NULL, 16);
+                            etrace->buffer_size = commands[5].toLongLong(NULL, 16);
+                            etrace->wrap = commands[6].toLongLong(NULL, 16);
                             etrace->Config(target);
                         } else {
                             command_error = true;
@@ -206,6 +209,9 @@ void Transmit::ServerCmdDeal(QByteArray msg)
                         send.append("nuclei etrace clear\n");
                         send.append("nuclei etrace info\n");
                         server->Write(type->bin_to_hex(send, send.size()));
+                    } else {
+                        send.append("OK");
+                        server->Write(send);
                     }
                 } else {
                     target->SendCmd(msg);

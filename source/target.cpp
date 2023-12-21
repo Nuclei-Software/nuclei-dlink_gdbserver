@@ -80,7 +80,7 @@ QByteArray Target::ReadMemory(quint64 addr, quint32 length)
         send.append(temp);
         SendCmd(send);
         read = GetRsp();
-        bin.append(type->hex_to_bin(read, current_size));
+        bin.append(type->hex_to_bin(read, current_size * 2));
         current_addr += current_size;
         length -= current_size;
     } while (length);
@@ -90,9 +90,16 @@ QByteArray Target::ReadMemory(quint64 addr, quint32 length)
 void Target::WriteRegister(quint32 number, quint64 value)
 {
     char temp[1024];
-    QByteArray send;
-    sprintf(temp, "P%x=%llx", number, value);
+    QByteArray send, bin;
+    sprintf(temp, "P%x=", number);
     send.append(temp);
+    if (value > 0xFFFFFFFF) {
+        bin = type->uint64_to_bin_le(value);
+        send.append(type->bin_to_hex(bin, bin.size()));
+    } else {
+        bin = type->uint32_to_bin_le(value);
+        send.append(type->bin_to_hex(bin, bin.size()));
+    }
     SendCmd(send);
     GetRsp();
 }
@@ -100,17 +107,18 @@ void Target::WriteRegister(quint32 number, quint64 value)
 quint64 Target::ReadRegister(quint32 number)
 {
     char temp[1024];
-    QByteArray send, read;
+    QByteArray send, read, bin;
     quint64 value = 0;
 
     sprintf(temp, "p%x", number);
     send.append(temp);
     SendCmd(send);
     read = GetRsp();
+    bin = type->hex_to_bin(read, read.size());
     if (read.size() <= 8) {
-        value = type->hex_to_uint32_le(read);
+        value = type->bin_to_uint32_le(bin);
     } else {
-        value = type->hex_to_uint64_le(read);
+        value = type->bin_to_uint64_le(bin);
     }
     return value;
 }

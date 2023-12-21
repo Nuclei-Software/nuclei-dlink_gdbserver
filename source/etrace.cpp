@@ -40,6 +40,7 @@ Etrace::Etrace(QObject *parent)
     : QObject{parent}
 {
     type = new Type;
+    start_flag = false;
 }
 
 void Etrace::CommandPrint(const char *format, ...)
@@ -53,28 +54,32 @@ void Etrace::CommandPrint(const char *format, ...)
 
 void Etrace::Config(Target* target)
 {
+    if (start_flag) {
+        return;
+    }
+
     target->WriteMemory(etrace_addr + ETRACE_BASE_HI,
-                        type->uint32_to_hex_le(buffer_addr >> 32),
+                        type->uint32_to_bin_le(buffer_addr >> 32),
                         4);
     target->WriteMemory(etrace_addr + ETRACE_BASE_LO,
-                        type->uint32_to_hex_le(buffer_addr),
+                        type->uint32_to_bin_le(buffer_addr),
                         4);
     target->WriteMemory(etrace_addr + ETRACE_WLEN,
-                        type->uint32_to_hex_le(buffer_size),
+                        type->uint32_to_bin_le(buffer_size),
                         4);
     if (wrap) {
         target->WriteMemory(etrace_addr + ETRACE_WRAP,
-                            type->uint32_to_hex_le(1),
+                            type->uint32_to_bin_le(1),
                             4);
         target->WriteMemory(etrace_addr + ETRACE_COMPACT,
-                            type->uint32_to_hex_le(0),
+                            type->uint32_to_bin_le(0),
                             4);
     } else {
         target->WriteMemory(etrace_addr + ETRACE_WRAP,
-                            type->uint32_to_hex_le(0),
+                            type->uint32_to_bin_le(0),
                             4);
         target->WriteMemory(etrace_addr + ETRACE_COMPACT,
-                            type->uint32_to_hex_le(1),
+                            type->uint32_to_bin_le(1),
                             4);
     }
 }
@@ -127,8 +132,8 @@ void Etrace::Disable(Target* target)
 
 void Etrace::Start(Target* target)
 {
-    target->WriteMemory(etrace_addr + ETRACE_WRAP,
-                        type->uint32_to_hex_le(1),
+    target->WriteMemory(etrace_addr + ETRACE_ENA,
+                        type->uint32_to_bin_le(1),
                         4);
 }
 
@@ -139,14 +144,16 @@ void Etrace::Stop(Target* target)
     quint32 wait_idle = 0x100;
 
     target->WriteMemory(etrace_addr + ETRACE_ENA,
-                        type->uint32_to_hex_le(0),
+                        type->uint32_to_bin_le(0),
                         4);
     do {
         read = target->ReadMemory(etrace_addr + ETRACE_IDLE, 4);
-        temp = type->hex_to_uint32_le(read);
+        temp = type->bin_to_uint32_le(read);
         wait_idle -= 1;
-        if (0 == wait_idle)
+        if (0 == wait_idle) {
+            qDebug() << "stop timeout";
             break;
+        }
     } while(temp != 1);
 }
 
@@ -158,10 +165,14 @@ void Etrace::Dump(Target* target, QString file_path)
     quint64 address;
     quint64 size;
 
+    if (start_flag) {
+        return;
+    }
+
     read = target->ReadMemory(etrace_addr + ETRACE_ENDOFFSET, 4);
-    end_offset = type->hex_to_uint32_le(read);
+    end_offset = type->bin_to_uint32_le(read);
     read = target->ReadMemory(etrace_addr + ETRACE_FLG, 4);
-    full_flag = type->hex_to_uint32_le(read);
+    full_flag = type->bin_to_uint32_le(read);
     if (full_flag) {
         address = buffer_addr + end_offset;
         size = buffer_size;
@@ -182,10 +193,10 @@ void Etrace::Clear(Target* target)
     Stop(target);
 
     target->WriteMemory(etrace_addr + ETRACE_ENDOFFSET,
-                        type->uint32_to_hex_le(0),
+                        type->uint32_to_bin_le(0),
                         4);
     target->WriteMemory(etrace_addr + ETRACE_FLG,
-                        type->uint32_to_hex_le(0),
+                        type->uint32_to_bin_le(0),
                         4);
 }
 
@@ -196,9 +207,9 @@ void Etrace::Info(Target* target, Server* server)
     quint32 full_flag;
 
     read = target->ReadMemory(etrace_addr + ETRACE_ENDOFFSET, 4);
-    end_offset = type->hex_to_uint32_le(read);
+    end_offset = type->bin_to_uint32_le(read);
     read = target->ReadMemory(etrace_addr + ETRACE_FLG, 4);
-    full_flag = type->hex_to_uint32_le(read);
+    full_flag = type->bin_to_uint32_le(read);
 
     info_hex.clear();
     CommandPrint("Etrace Base: %#llx\n", etrace_addr);

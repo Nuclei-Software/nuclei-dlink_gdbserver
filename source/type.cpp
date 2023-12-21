@@ -102,7 +102,7 @@ QByteArray Type::bin_to_hex(QByteArray data_bin, uint32_t nbyte)
     return hex;
 }
 
-QByteArray Type::uint32_to_hex_le(quint32 data)
+QByteArray Type::uint32_to_bin_le(quint32 data)
 {
     QByteArray bin;
 
@@ -111,10 +111,10 @@ QByteArray Type::uint32_to_hex_le(quint32 data)
     bin.append((data >> 16) & 0xff);
     bin.append((data >> 24) & 0xff);
 
-    return bin_to_hex(bin, 4);
+    return bin;
 }
 
-QByteArray Type::uint64_to_hex_le(quint64 data)
+QByteArray Type::uint64_to_bin_le(quint64 data)
 {
     QByteArray bin;
 
@@ -127,7 +127,7 @@ QByteArray Type::uint64_to_hex_le(quint64 data)
     bin.append((data >> 48) & 0xff);
     bin.append((data >> 56) & 0xff);
 
-    return bin_to_hex(bin, 8);
+    return bin;
 }
 
 QByteArray Type::hex_to_bin(QByteArray data_hex, uint32_t nbyte)
@@ -137,7 +137,7 @@ QByteArray Type::hex_to_bin(QByteArray data_hex, uint32_t nbyte)
     char *hex = data_hex.data();
     char bin;
     QByteArray data_bin;
-    for(i = 0; i < nbyte; i++) {
+    for(i = 0; i < (nbyte / 2); i++) {
         if (hex[i * 2] <= '9') {
             hi = hex[i * 2] - '0';
         } else if (hex[i * 2] <= 'F') {
@@ -158,32 +158,28 @@ QByteArray Type::hex_to_bin(QByteArray data_hex, uint32_t nbyte)
     return data_bin;
 }
 
-quint32 Type::hex_to_uint32_le(QByteArray hex)
+quint32 Type::bin_to_uint32_le(QByteArray bin)
 {
-    QByteArray bin;
     quint32 data;
 
-    bin = hex_to_bin(hex, 4);
-    data = (quint32)bin[0] |
-            ((quint32)bin[1] << 8) |
-            ((quint32)bin[2] << 16) |
-            ((quint32)bin[3] << 24);
+    data  = 0xFF & (quint32)bin[0];
+    data |= 0xFF00 & ((quint32)bin[1] << 8);
+    data |= 0xFF0000 & ((quint32)bin[2] << 16);
+    data |= 0xFF000000 & ((quint32)bin[3] << 24);
     return data;
 }
 
-quint64 Type::hex_to_uint64_le(QByteArray hex)
+quint64 Type::bin_to_uint64_le(QByteArray bin)
 {
-    QByteArray bin;
     quint64 data;
 
-    bin = hex_to_bin(hex, 4);
-    data = (quint64)bin[0] |
-           ((quint64)bin[1] << 8) |
-           ((quint64)bin[2] << 16) |
-           ((quint64)bin[3] << 24) |
-           ((quint64)bin[4] << 32) |
-           ((quint64)bin[5] << 40) |
-           ((quint64)bin[6] << 48) |
-           ((quint64)bin[7] << 56);
+    data  = 0xFF & (quint64)bin[0];
+    data |= 0xFF00 & ((quint64)bin[1] << 8);
+    data |= 0xFF0000 & ((quint64)bin[2] << 16);
+    data |= 0xFF000000 & ((quint64)bin[3] << 24);
+    data |= 0xFF00000000 & ((quint64)bin[4] << 32);
+    data |= 0xFF0000000000 & ((quint64)bin[5] << 40);
+    data |= 0xFF000000000000 & ((quint64)bin[6] << 48);
+    data |= 0xFF00000000000000 & ((quint64)bin[7] << 56);
     return data;
 }
