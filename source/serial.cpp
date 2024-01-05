@@ -41,6 +41,7 @@ void Serial::Init()
                 if (((SerialNumber == port.serialNumber()) && (SerialName != port.portName())) ||
                     ((SerialNumber != port.serialNumber()) && (SerialName == port.portName()))) {
                     qDebug() << SerialName << " and " << SerialNumber << "is not match.";
+                    qDebug() << port.portName() << " and " << port.serialNumber() << "is not match.";
                     return;
                 }
                 if ((SerialNumber == port.serialNumber()) && (SerialName == port.portName())) {
@@ -65,7 +66,13 @@ void Serial::Init()
         }
         return;
     }
+#ifdef WIN32
     SerialPort->setPortName(SerialName);
+#else
+    QString linux_dev = "/dev/";
+    SerialName = linux_dev + SerialName;
+    SerialPort->setPortName(SerialName);
+#endif
     SerialPort->setBaudRate(SerialBaud);
     SerialPort->setDataBits(QSerialPort::Data8);
     SerialPort->setParity(QSerialPort::NoParity);
