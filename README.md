@@ -82,3 +82,20 @@ cd build
 # Starting In Command Line Mode
 ./dlink_gdbserver -f ../dlink_gdbserver.cfg
 ```
+
+# Linux add usb rules
+
+Creating a rule file
+```
+sudo vim /etc/udev/rules.d/50-dlink.rules
+```
+
+Write Dlink-related USB rules
+```
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="28e9", ATTRS{idProduct}=="018a", GROUP="users", MODE="0666"
+```
+
+Reload USB rules or reboot your computer
+```
+sudo udevadm control --reload
+```
