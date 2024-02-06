@@ -126,11 +126,28 @@ void Cpuinfo::ShowInfo(Target* target, Server* server)
     if (csr_mcfg & BIT(14)) {
         CommandPrint(" DSP-N3");
     }
+    if (csr_mcfg & BIT(15)) {
+        CommandPrint(" Zc-xlcz");
+    }
     if (csr_mcfg & BIT(16)) {
         CommandPrint(" IREGION");
     }
+    if (csr_mcfg & BIT(19)) {
+        CommandPrint(" Smwg");
+    }
     if (csr_mcfg & BIT(20)) {
         CommandPrint(" ETRACE");
+    }
+    if (csr_mcfg & BIT(21)) {
+        if (csr_mcfg & BIT(22)) {
+            CommandPrint(" ASIL-B");
+        } else {
+            CommandPrint(" Lockstep+Split");
+        }
+    } else {
+        if (csr_mcfg & BIT(22)) {
+            CommandPrint(" Lockstep");
+        }
     }
     CommandPrint("\n");
     /* ILM */
@@ -178,7 +195,7 @@ void Cpuinfo::ShowInfo(Target* target, Server* server)
         CommandPrint("         IREGION:");
         iregion_base = csr_mirgb & (~0x3FF);
         CommandPrint(" %#lx", iregion_base);
-        print_size(POWER_FOR_TWO(EXTRACT_FIELD(csr_mirgb, 0xF << 1) - 1) * KB);
+        print_size(POWER_FOR_TWO(EXTRACT_FIELD(csr_mirgb, 0x1F << 1) - 1) * KB);
         CommandPrint("\n");
         CommandPrint("                  Unit        Size        Address\n");
         CommandPrint("                  INFO        64KB        %#lx\n", iregion_base);
@@ -191,7 +208,7 @@ void Cpuinfo::ShowInfo(Target* target, Server* server)
             CommandPrint("                  SMP&CC      64KB        %#lx\n", iregion_base + 0x40000);
         }
         uint64_t smp_cfg = target->ReadMemory(iregion_base + 0x40004, 4).toLongLong(NULL, 16);
-        if ((csr_mcfg & BIT(2)) && (EXTRACT_FIELD(smp_cfg, 0x1F << 1) >= 2)) {
+        if ((csr_mcfg & BIT(2)) && (EXTRACT_FIELD(smp_cfg, 0x3F << 1) >= 2)) {
             CommandPrint("                  CIDU        64KB        %#lx\n", iregion_base + 0x50000);
         }
         if (csr_mcfg & BIT(3)) {
@@ -201,7 +218,7 @@ void Cpuinfo::ShowInfo(Target* target, Server* server)
         if (csr_mcfg & BIT(11)) {
             CommandPrint("         SMP_CFG:");
             CommandPrint(" CC_PRESENT=%ld", EXTRACT_FIELD(smp_cfg, 0x1));
-            CommandPrint(" SMP_CORE_NUM=%ld", EXTRACT_FIELD(smp_cfg, 0x1F << 1));
+            CommandPrint(" SMP_CORE_NUM=%ld", EXTRACT_FIELD(smp_cfg, 0x3F << 1));
             CommandPrint(" IOCP_NUM=%ld", EXTRACT_FIELD(smp_cfg, 0x3F << 7));
             CommandPrint(" PMON_NUM=%ld\n", EXTRACT_FIELD(smp_cfg, 0x3F << 13));
         }
@@ -209,8 +226,8 @@ void Cpuinfo::ShowInfo(Target* target, Server* server)
         if (smp_cfg & 0x1) {
             CommandPrint("         L2CACHE:");
             uint64_t cc_cfg = target->ReadMemory(iregion_base + 0x40008, 4).toLongLong(NULL, 16);
-            show_cache_info(POWER_FOR_TWO(EXTRACT_FIELD(cc_cfg, 0xF)), EXTRACT_FIELD(cc_cfg, 0x7 << 4) + 1,
-                            POWER_FOR_TWO(EXTRACT_FIELD(cc_cfg, 0x7 << 7) + 2));
+            show_cache_info(POWER_FOR_TWO(EXTRACT_FIELD(cc_cfg, 0xF)), EXTRACT_FIELD(cc_cfg, 0xF << 4) + 1,
+                            POWER_FOR_TWO(EXTRACT_FIELD(cc_cfg, 0x7 << 8) + 2));
         }
         /* INFO */
         CommandPrint("     INFO-Detail:\n");
@@ -240,12 +257,11 @@ void Cpuinfo::ShowInfo(Target* target, Server* server)
     if (csr_mcfg & BIT(3)) {
         csr_mtlbcfg = target->ReadRegister(RV_REG_MTLBCFG_INFO);
         if (csr_mtlbcfg) {
-            CommandPrint("            DTLB: %ld entry\n", EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 19));
-            CommandPrint("            ITLB: %ld entry\n", EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 16));
+            CommandPrint("            DTLB: %ld entry\n", POWER_FOR_TWO(EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 19) - 1));
+            CommandPrint("            ITLB: %ld entry\n", POWER_FOR_TWO(EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 16) - 1));
             CommandPrint("            MTLB:");
             CommandPrint(" %ld entry", POWER_FOR_TWO(EXTRACT_FIELD(csr_mtlbcfg, 0xF) + 3) *
-                                            (EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 4) + 1) *
-                                            (EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 7) - 1));
+                                            (EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 4) + 1));
             if (csr_mtlbcfg & BIT(10)) {
                 CommandPrint(" has_ecc");
             }
