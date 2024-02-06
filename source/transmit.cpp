@@ -1,6 +1,6 @@
 #include "../include/transmit.h"
 
-QString version = "V1.0.0";
+QByteArray version = "v1.0.0";
 extern bool debug;
 extern bool noack_mode;
 extern quint64 target_packet_max;
@@ -36,7 +36,7 @@ void Transmit::Init()
 {
     server->Init();
     target->Init();
-    qDebug() << "Nuclei Dlink GDB Server " << version << "Command Line Version";
+    qDebug("Dlink GDB Server: %s Version", version.constData());
     fprintf(stderr, "Started by GNU MCU Eclipse\n");
 }
 
@@ -369,6 +369,8 @@ void Transmit::ServerCmdDeal(QByteArray msg)
 void Transmit::run()
 {
     QByteArray msg;
+
+    target->ReadVersion();
 
     while (1) {
         if (close_flag) {

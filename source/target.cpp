@@ -43,6 +43,18 @@ QByteArray Target::GetRsp()
     return type->unpack(read);
 }
 
+void Target::ReadVersion(void)
+{
+    QByteArray send, recv;
+    send.append("+:read:version;");
+    SendCmd(send);
+    recv = GetRsp();
+    if (recv.contains("version")) {
+        qDebug("Dlink Firmware: %s Version", recv.mid(15).removeLast().constData());
+    } else {
+        qDebug() << "read version fail.";
+    }
+}
 
 void Target::WriteMemory(quint64 addr, QByteArray data, quint32 length)
 {
