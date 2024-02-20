@@ -1,6 +1,6 @@
 #include "../include/transmit.h"
 
-QByteArray version = "v1.0.0";
+extern QByteArray version;
 extern bool debug;
 extern bool noack_mode;
 extern quint64 target_packet_max;

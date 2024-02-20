@@ -1,5 +1,6 @@
 #include "../include/application_console.h"
 
+QByteArray version = "v1.0.0";
 bool debug = false;
 bool noack_mode = false;
 quint64 target_packet_max = 0x400;
@@ -12,17 +13,30 @@ Application::Application(QObject *parent)
 
 void Application::Init(int argc, char *argv[])
 {
-    if (argc != 3) {
+    if (argc == 2) {
+        for (int i = 0; i < argc; i++) {
+            if (strncmp(argv[i], "-v", 2) == 0)
+            {
+                qDebug("Dlink GDB Server: %s Version", version.constData());
+                exit(0);
+            }
+        }
+    } else if (argc == 3) {
+        for (int i = 0; i < argc; i++) {
+            if (strncmp(argv[i], "-f", 2) == 0) {
+                //start app
+                Connect(argv[i + 1]);
+                break;
+            } else if (strncmp(argv[i], "-v", 2) == 0)
+            {
+                qDebug("Dlink GDB Server: %s Version", version.constData());
+            }
+        }
+    } else {
         qDebug() << "Command Error:";
+        qDebug() << "Example: ./dlink_gdbserver_console -v";
         qDebug() << "Example: ./dlink_gdbserver_console -f dlink_gdbserver.cfg";
         exit(-1);
-    }
-    for (int i = 0; i < argc; i++) {
-        if (strncmp(argv[i], "-f", 2) == 0) {
-            //start app
-            Connect(argv[i + 1]);
-            break;
-        }
     }
 }
 
