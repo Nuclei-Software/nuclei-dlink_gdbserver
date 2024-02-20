@@ -13,7 +13,7 @@ class Etrace : public QObject
 public:
     explicit Etrace(QObject *parent = nullptr);
 
-    quint64 etrace_addr;
+    quint64 atb2axi_config_addr;
     quint64 buffer_addr;
     quint64 buffer_size;
     quint64 wrap;

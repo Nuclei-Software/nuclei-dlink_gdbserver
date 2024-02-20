@@ -58,27 +58,27 @@ void Etrace::Config(Target* target)
         return;
     }
 
-    target->WriteMemory(etrace_addr + ETRACE_BASE_HI,
+    target->WriteMemory(atb2axi_config_addr + ETRACE_BASE_HI,
                         type->uint32_to_bin_le(buffer_addr >> 32),
                         4);
-    target->WriteMemory(etrace_addr + ETRACE_BASE_LO,
+    target->WriteMemory(atb2axi_config_addr + ETRACE_BASE_LO,
                         type->uint32_to_bin_le(buffer_addr),
                         4);
-    target->WriteMemory(etrace_addr + ETRACE_WLEN,
+    target->WriteMemory(atb2axi_config_addr + ETRACE_WLEN,
                         type->uint32_to_bin_le(buffer_size),
                         4);
     if (wrap) {
-        target->WriteMemory(etrace_addr + ETRACE_WRAP,
+        target->WriteMemory(atb2axi_config_addr + ETRACE_WRAP,
                             type->uint32_to_bin_le(1),
                             4);
-        target->WriteMemory(etrace_addr + ETRACE_COMPACT,
+        target->WriteMemory(atb2axi_config_addr + ETRACE_COMPACT,
                             type->uint32_to_bin_le(0),
                             4);
     } else {
-        target->WriteMemory(etrace_addr + ETRACE_WRAP,
+        target->WriteMemory(atb2axi_config_addr + ETRACE_WRAP,
                             type->uint32_to_bin_le(0),
                             4);
-        target->WriteMemory(etrace_addr + ETRACE_COMPACT,
+        target->WriteMemory(atb2axi_config_addr + ETRACE_COMPACT,
                             type->uint32_to_bin_le(1),
                             4);
     }
@@ -132,7 +132,7 @@ void Etrace::Disable(Target* target)
 
 void Etrace::Start(Target* target)
 {
-    target->WriteMemory(etrace_addr + ETRACE_ENA,
+    target->WriteMemory(atb2axi_config_addr + ETRACE_ENA,
                         type->uint32_to_bin_le(1),
                         4);
 }
@@ -143,11 +143,11 @@ void Etrace::Stop(Target* target)
     quint32 temp;
     quint32 wait_idle = 0x100;
 
-    target->WriteMemory(etrace_addr + ETRACE_ENA,
+    target->WriteMemory(atb2axi_config_addr + ETRACE_ENA,
                         type->uint32_to_bin_le(0),
                         4);
     do {
-        read = target->ReadMemory(etrace_addr + ETRACE_IDLE, 4);
+        read = target->ReadMemory(atb2axi_config_addr + ETRACE_IDLE, 4);
         temp = type->bin_to_uint32_le(read);
         wait_idle -= 1;
         if (0 == wait_idle) {
@@ -169,9 +169,9 @@ void Etrace::Dump(Target* target, QString file_path)
         return;
     }
 
-    read = target->ReadMemory(etrace_addr + ETRACE_ENDOFFSET, 4);
+    read = target->ReadMemory(atb2axi_config_addr + ETRACE_ENDOFFSET, 4);
     end_offset = type->bin_to_uint32_le(read);
-    read = target->ReadMemory(etrace_addr + ETRACE_FLG, 4);
+    read = target->ReadMemory(atb2axi_config_addr + ETRACE_FLG, 4);
     full_flag = type->bin_to_uint32_le(read);
     if (full_flag) {
         address = buffer_addr + end_offset;
@@ -192,10 +192,10 @@ void Etrace::Clear(Target* target)
 {
     Stop(target);
 
-    target->WriteMemory(etrace_addr + ETRACE_ENDOFFSET,
+    target->WriteMemory(atb2axi_config_addr + ETRACE_ENDOFFSET,
                         type->uint32_to_bin_le(0),
                         4);
-    target->WriteMemory(etrace_addr + ETRACE_FLG,
+    target->WriteMemory(atb2axi_config_addr + ETRACE_FLG,
                         type->uint32_to_bin_le(0),
                         4);
 }
@@ -206,15 +206,15 @@ void Etrace::Info(Target* target, Server* server)
     quint32 end_offset;
     quint32 full_flag;
 
-    read = target->ReadMemory(etrace_addr + ETRACE_ENDOFFSET, 4);
+    read = target->ReadMemory(atb2axi_config_addr + ETRACE_ENDOFFSET, 4);
     end_offset = type->bin_to_uint32_le(read);
-    read = target->ReadMemory(etrace_addr + ETRACE_FLG, 4);
+    read = target->ReadMemory(atb2axi_config_addr + ETRACE_FLG, 4);
     full_flag = type->bin_to_uint32_le(read);
 
     info_hex.clear();
-    CommandPrint("Etrace Base: %#llx\n", etrace_addr);
-    CommandPrint("Buffer Addr: %#llx\n", buffer_addr);
-    CommandPrint("Buffer Size: %#llx\n", buffer_size);
+    CommandPrint("ATB2AXI Addr: %#llx\n", atb2axi_config_addr);
+    CommandPrint("Buffer  Addr: %#llx\n", buffer_addr);
+    CommandPrint("Buffer  Size: %#llx\n", buffer_size);
     CommandPrint("Buffer Status: ");
     if (full_flag) {
         CommandPrint("used 100%% from %#llx [wraped]\n", buffer_addr + end_offset);
