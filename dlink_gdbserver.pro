@@ -46,6 +46,45 @@ FORMS += \
 
 RC_ICONS = logo.ico
 
+build_type =
+CONFIG(debug, release) {
+    build_type = build_debug
+} else {
+    build_type = build_release
+}
+
+DESTDIR     = $$build_type/out
+OBJECTS_DIR = $$build_type/obj
+MOC_DIR     = $$build_type/moc
+RCC_DIR     = $$build_type/rcc
+UI_DIR      = $$build_type/ui
+
+win32:{
+    win32-g++ {
+        QMAKE_CXXFLAGS += -Wno-deprecated-copy
+    }
+    win32-msvc*{
+    }
+    VERSION = $${BUILD_VERSION}.000
+    RC_ICONS = "logo.ico"
+    QMAKE_TARGET_PRODUCT = "dlink_gdbserver_console"
+    QMAKE_TARGET_DESCRIPTION = "dlink_gdbserver_console based on Qt $$[QT_VERSION]"
+    QMAKE_TARGET_COPYRIGHT = "GNU General Public License v3.0"
+}
+
+unix:!macx:{
+    QMAKE_CXXFLAGS += -Wno-deprecated-copy
+    QMAKE_RPATHDIR=$ORIGIN
+    QMAKE_LFLAGS += -no-pie 
+    LIBS += -lutil
+}
+
+macx:{
+    QMAKE_CXXFLAGS += -Wno-deprecated-copy
+    QMAKE_RPATHDIR=$ORIGIN
+    ICON = "logo.ico"
+    LIBS += -lutil
+}
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
