@@ -1,0 +1,12 @@
+Package: dlink-gdbserver
+Version: #VERSION#
+Architecture: amd64
+Section: utils
+Depends:
+Recommends:
+Source: dlink_gdbserver
+Installed-Size: #SIZE#
+Priority: extra
+Maintainer: wangyanwen@nucleisys.com
+Description: dlink_gdbserver
+Homepage: https://github.com/Nuclei-Software/nuclei-dlink_gdbserver

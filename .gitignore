@@ -78,6 +78,8 @@ CMakeLists.txt.user*
 *build-*
 build_*
 .vscode
+dpkg/*
+!dpkg/DEBIAN
 !build_setup_msvc.bat
 !build_setup.bat
 !build_deb.sh
