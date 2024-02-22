@@ -1,6 +1,6 @@
 #include "../include/application_console.h"
 
-QByteArray version = "v1.0.0";
+QByteArray version = "v0.9.0";
 bool debug = false;
 bool noack_mode = false;
 quint64 target_packet_max = 0x400;
