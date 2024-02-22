@@ -1,0 +1,63 @@
+# This file is a template, and might need editing before it works on your project.
+# To contribute improvements to CI/CD templates, please follow the Development guide at:
+# https://docs.gitlab.com/ee/development/cicd/templates.html
+# This specific template is located at:
+# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
+
+# This is a sample GitLab CI/CD configuration file that should run without any modifications.
+# It demonstrates a basic 3 stage CI/CD pipeline. Instead of real tests or scripts,
+# it uses echo commands to simulate the pipeline execution.
+#
+# A pipeline is composed of independent jobs that run scripts, grouped into stages.
+# Stages run in sequential order, but jobs within stages run in parallel.
+#
+# For more information, see: https://docs.gitlab.com/ee/ci/yaml/index.html#stages
+
+stages:
+  - build
+  - test
+  - deploy
+
+windows-build-job:
+  stage: build
+  tags: windows-2022
+  script:
+    - echo "Compiling the code..."
+    - echo "Compile complete."
+
+windows-test-job:
+  stage: test
+  tags: windows-2022
+  script:
+    - echo "Running unit tests... This will take about 60 seconds."
+    - sleep 60
+    - echo "Code coverage is 90%"
+
+windows-deploy-job:
+  stage: deploy
+  tags: windows-2022
+  script:
+    - echo "Deploying application..."
+    - echo "Application successfully deployed."
+
+linux-build-job:
+  stage: build
+  tags: ubuntu-20.04
+  script:
+    - echo "Compiling the code..."
+    - echo "Compile complete."
+
+linux-test-job:
+  stage: test
+  tags: ubuntu-20.04
+  script:
+    - echo "Linting code... This will take about 10 seconds."
+    - sleep 10
+    - echo "No lint issues found."
+
+linux-deploy-job:
+  stage: deploy
+  tags: ubuntu-20.04
+  script:
+    - echo "Deploying application..."
+    - echo "Application successfully deployed."
