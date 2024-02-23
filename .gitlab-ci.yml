@@ -1,63 +1,89 @@
-# This file is a template, and might need editing before it works on your project.
-# To contribute improvements to CI/CD templates, please follow the Development guide at:
-# https://docs.gitlab.com/ee/development/cicd/templates.html
-# This specific template is located at:
-# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
-
-# This is a sample GitLab CI/CD configuration file that should run without any modifications.
-# It demonstrates a basic 3 stage CI/CD pipeline. Instead of real tests or scripts,
-# it uses echo commands to simulate the pipeline execution.
-#
-# A pipeline is composed of independent jobs that run scripts, grouped into stages.
-# Stages run in sequential order, but jobs within stages run in parallel.
-#
-# For more information, see: https://docs.gitlab.com/ee/ci/yaml/index.html#stages
-
 stages:
   - build
   - test
   - deploy
 
+default:
+  interruptible: true
+
 windows-build-job:
   stage: build
-  tags: windows-2022
+  tags:
+    - net::outside
+    - user::xl_ci
+    - os::win10
+    - env::cmd
   script:
     - echo "Compiling the code..."
+    - set PATH=D:\Qt\6.6.2\mingw_64\bin;D:\Qt\Tools\mingw1120_64\bin;C:\Program Files (x86)\Inno Setup 6;%PATH%
+    - call .\build_setup.bat
+    - .\InnoSetup\build\dlink_gdbserver_console.exe -v
     - echo "Compile complete."
+  artifacts:
+    when: always
+    name: "nuclei-dlink_gdbserver-win32-${CI_COMMIT_SHA::8}"
+    paths:
+      - InnoSetup/*.exe
+      - InnoSetup/*.zip
+    expire_in: 15 day
 
-windows-test-job:
-  stage: test
-  tags: windows-2022
-  script:
-    - echo "Running unit tests... This will take about 60 seconds."
-    - sleep 60
-    - echo "Code coverage is 90%"
+      #windows-test-job:
+      #  stage: test
+      #  tags: windows-2022
+      #  script:
+      #    - echo "Running unit tests... This will take about 60 seconds."
+      #    - sleep 60
+      #    - echo "Code coverage is 90%"
 
-windows-deploy-job:
-  stage: deploy
-  tags: windows-2022
-  script:
-    - echo "Deploying application..."
-    - echo "Application successfully deployed."
+      #windows-deploy-job:
+      #  stage: deploy
+      #  tags: windows-2022
+      #  script:
+      #    - echo "Deploying application..."
+      #    - echo "Application successfully deployed."
 
 linux-build-job:
   stage: build
-  tags: ubuntu-20.04
+  tags:
+    - net::outside
+    - env::shell
+    - user::xl_ci
+    - sw::qt
   script:
     - echo "Compiling the code..."
+    - source ~/shareenv.sh
+    - bash -x ./build_deb.sh
+    - cd dpkg/Linux_v*
+    - pwd
+    - ldd ./opt/dlink_gdbserver/dlink_gdbserver_console
+    - ./opt/dlink_gdbserver/dlink_gdbserver_console -v
     - echo "Compile complete."
+  artifacts:
+    when: always
+    name: "nuclei-dlink_gdbserver-linux64-${CI_COMMIT_SHA::8}"
+    paths:
+      - dpkg/*.tar.gz
+      - dpkg/*.deb
+    expire_in: 15 day
 
 linux-test-job:
   stage: test
-  tags: ubuntu-20.04
+  tags:
+    - env::docker
+    - net::outside
+  image: ubuntu:20.04
+  dependencies:
+    - linux-build-job
   script:
-    - echo "Linting code... This will take about 10 seconds."
-    - sleep 10
-    - echo "No lint issues found."
+    - tar -xzf dpkg/*.tar.gz
+    - echo "Check dlink_gdbserver version"
+    - ldd ./dlink_gdbserver/dlink_gdbserver_console
+    - ./dlink_gdbserver/dlink_gdbserver_console -v
 
-linux-deploy-job:
-  stage: deploy
-  tags: ubuntu-20.04
-  script:
-    - echo "Deploying application..."
-    - echo "Application successfully deployed."
+
+#linux-deploy-job:
+#  stage: deploy
+#  tags: ubuntu-20.04
+#  script:
+#    - echo "Deploying application..."
+#    - echo "Application successfully deployed."
