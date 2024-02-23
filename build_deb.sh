@@ -65,8 +65,10 @@ dpkg -b ./dpkg/Linux_"$APP_VERSION"_x86_64 ./dpkg/"$APP_NAME"_"$APP_VERSION"_lin
 echo build success!
 # 压缩
 echo "wait taring..."
-cp -r ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME" ./dpkg/"$APP_NAME"_"$APP_VERSION"_linux_deploy
-tar -zcvf ./dpkg/"$APP_NAME"_"$APP_VERSION"_linux_deploy.tar.gz ./dpkg/"$APP_NAME"_"$APP_VERSION"_linux_deploy
+cp -r ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME" ./dpkg/"$APP_NAME"
+cd dpkg
+tar -zcvf "$APP_NAME"_"$APP_VERSION"_linux_deploy.tar.gz "$APP_NAME"
+cd ..
 rm -rf ./dpkg/"$APP_NAME"_"$APP_VERSION"_linux_deploy
 echo "tar finish!"
 ###############################################################################
