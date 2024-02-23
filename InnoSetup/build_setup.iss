@@ -4,7 +4,7 @@
 #define MyAppPublisher "wangyanwen@nucleisys.com"
 #define MyAppURL "https://github.com/Nuclei-Software/nuclei-dlink_gdbserver"
 #define MyAppExeName "dlink_gdbserver.exe"
-#define MyAppOutputName "dlink_gdbserver_v#VERSION#_windows_setup"
+#define MyAppOutputName "nuclei-dlink_gdbserver-v#VERSION#-win32-x32"
 
 [Setup]
 AppId={{FB978856-5DFB-4B2D-8DDB-B4DBB585715B}
