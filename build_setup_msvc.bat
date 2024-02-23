@@ -53,8 +53,10 @@ rmdir /Q /S .\release
 echo "build success!"
 :: 压缩
 echo "wait zipping..."
-xcopy /y .\InnoSetup\build\ .\InnoSetup\%APP_NAME%_%APP_VERSION%_windows_deploy\ /E /H /C /I
-tar -a -c -f .\InnoSetup\%APP_NAME%_%APP_VERSION%_windows_deploy.zip .\InnoSetup\%APP_NAME%_%APP_VERSION%_windows_deploy
-rmdir /Q /S .\InnoSetup\%APP_NAME%_%APP_VERSION%_windows_deploy
+xcopy /y .\InnoSetup\build .\InnoSetup\%APP_NAME% /E /H /C /I
+cd InnoSetup
+tar -a -c -f %APP_NAME%_v%APP_VERSION%_windows_deploy.zip %APP_NAME%
+cd ..
+rmdir /Q /S .\InnoSetup\%APP_NAME%
 echo "zip finish!"
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
