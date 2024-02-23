@@ -61,14 +61,14 @@ sed -i "s/#SIZE#/$InstalledSize/g" ./dpkg/Linux_"$APP_VERSION"_x86_64/DEBIAN/con
 chmod 755 ./dpkg/Linux_"$APP_VERSION"_x86_64/* -R
 mkdir -p ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/plugins/"$APP_NAME"
 # 打包
-dpkg -b ./dpkg/Linux_"$APP_VERSION"_x86_64 ./dpkg/"$APP_NAME"_"$APP_VERSION"_linux_setup.deb
+dpkg -b ./dpkg/Linux_"$APP_VERSION"_x86_64 ./dpkg/nuclei-"$APP_NAME"-"$APP_VERSION"-linux-x64.deb
 echo build success!
 # 压缩
 echo "wait taring..."
 cp -r ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME" ./dpkg/"$APP_NAME"
 cd dpkg
-tar -zcvf "$APP_NAME"_"$APP_VERSION"_linux_deploy.tar.gz "$APP_NAME"
+tar -zcvf nuclei-"$APP_NAME"-"$APP_VERSION"-linux-x64.tar.gz "$APP_NAME"
 cd ..
-rm -rf ./dpkg/"$APP_NAME"_"$APP_VERSION"_linux_deploy
+rm -rf ./dpkg/"$APP_NAME"
 echo "tar finish!"
 ###############################################################################
