@@ -2,7 +2,7 @@ QT += core gui network serialport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += c++17
+CONFIG += c++17 debug
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -47,7 +47,7 @@ FORMS += \
 RC_ICONS = logo.ico
 
 build_type =
-CONFIG(debug, release) {
+CONFIG(debug, debug|release) {
     build_type = build_debug
 } else {
     build_type = build_release

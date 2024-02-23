@@ -34,13 +34,13 @@ rm -f ./dpkg/Linux_"$APP_VERSION"_x86_64.deb
 mkdir ./dpkg/Linux_"$APP_VERSION"_x86_64
 # 使用linuxdeployqt拷贝依赖so库到打包目录
 export QMAKE=$QT_DIR/bin/qmake
-./tools/linuxdeploy-x86_64.AppImage --executable=./build_release/out/"$APP_NAME" --appdir=./dpkg/Linux_"$APP_VERSION"_x86_64/opt --plugin=qt
+./tools/linuxdeploy-x86_64.AppImage --executable=./build_debug/out/"$APP_NAME" --appdir=./dpkg/Linux_"$APP_VERSION"_x86_64/opt --plugin=qt
 rm -rf ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/apprun-hooks
 mv ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/usr ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"
 mv ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/bin/"$APP_NAME" ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/"$APP_NAME"
 mv ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/bin/qt.conf ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/qt.conf
 
-cp ./build_release/out/"$APP_NAME"_console ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/"$APP_NAME"_console
+cp ./build_debug/out/"$APP_NAME"_console ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/"$APP_NAME"_console
 
 rm -rf ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/bin
 sed -i "s/Prefix = ..\//Prefix = .\//g" ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/qt.conf

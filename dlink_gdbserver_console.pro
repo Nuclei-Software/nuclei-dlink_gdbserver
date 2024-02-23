@@ -1,7 +1,7 @@
 QT -= gui
 QT += network serialport
 
-CONFIG += c++17 console
+CONFIG += c++17 console debug
 CONFIG -= app_bundle
 
 # You can make your code fail to compile if it uses deprecated APIs.
@@ -40,7 +40,7 @@ HEADERS += \
 RC_ICONS = logo.ico
 
 build_type =
-CONFIG(debug, release) {
+CONFIG(debug, debug|release) {
     build_type = build_debug
 } else {
     build_type = build_release

@@ -34,8 +34,8 @@ copy /y .\InnoSetup\build_setup.iss .\InnoSetup\build_temp_setup.iss
 .\tools\sed\sed.exe -i "s/#VERSIONINFOVERSION#/%APP_VERSION%.000/g" .\InnoSetup\build_temp_setup.iss
 del /f /q /a .\sed*
 :: 构建打包目录
-xcopy /y .\build_release\out\%APP_NAME%.exe .\InnoSetup\build\
-xcopy /y .\build_release\out\%APP_NAME%_console.exe .\InnoSetup\build\
+xcopy /y .\build_debug\out\%APP_NAME%.exe .\InnoSetup\build\
+xcopy /y .\build_debug\out\%APP_NAME%_console.exe .\InnoSetup\build\
 :: 使用windeployqt拷贝依赖dll库到打包目录
 windeployqt --dir .\InnoSetup\build .\InnoSetup\build\%APP_NAME%.exe
 windeployqt --dir .\InnoSetup\build .\InnoSetup\build\%APP_NAME%_console.exe
