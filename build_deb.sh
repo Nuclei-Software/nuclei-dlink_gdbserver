@@ -16,7 +16,7 @@ export LD_LIBRARY_PATH=$QT_DIR/lib:$LD_LIBRARY_PATH
 export QT_PLUGIN_PATH=$QT_DIR/plugins
 export QML2_IMPORT_PATH=$QT_DIR/qml
 # 合成版本号
-APP_VERSION="V"$MAJARVERSION$SUBVERSION$REVISION
+APP_VERSION="v"$MAJARVERSION"."$SUBVERSION"."$REVISION
 # 编译
 rm -rf .qmake.stash Makefile
 lrelease ./"$APP_NAME".pro
@@ -61,6 +61,12 @@ sed -i "s/#SIZE#/$InstalledSize/g" ./dpkg/Linux_"$APP_VERSION"_x86_64/DEBIAN/con
 chmod 755 ./dpkg/Linux_"$APP_VERSION"_x86_64/* -R
 mkdir -p ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/plugins/"$APP_NAME"
 # 打包
-dpkg -b ./dpkg/Linux_"$APP_VERSION"_x86_64 ./dpkg/Linux_"$APP_VERSION"_x86_64.deb
+dpkg -b ./dpkg/Linux_"$APP_VERSION"_x86_64 ./dpkg/"$APP_NAME"_"$APP_VERSION"_linux_setup.deb
 echo build success!
+# 压缩
+echo "wait taring..."
+cp -r ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME" ./dpkg/"$APP_NAME"_"$APP_VERSION"_linux_deploy
+tar -zcvf ./dpkg/"$APP_NAME"_"$APP_VERSION"_linux_deploy.tar.gz ./dpkg/"$APP_NAME"_"$APP_VERSION"_linux_deploy
+rm -rf ./dpkg/"$APP_NAME"_"$APP_VERSION"_linux_deploy
+echo "tar finish!"
 ###############################################################################
