@@ -75,6 +75,9 @@ CMakeLists.txt.user*
 !awk.exe
 !upx.exe
 
+*.zip
+*.tar.gz
+
 *build-*
 build_*
 .vscode
