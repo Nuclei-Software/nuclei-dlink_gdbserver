@@ -52,7 +52,7 @@ linux-build-job:
   script:
     - echo "Compiling the code..."
     - source ~/shareenv.sh
-    - bash -x ./build_deb.sh
+    - bash ./build_deb.sh
     - cd dpkg/Linux_v*
     - pwd
     - ldd ./opt/dlink_gdbserver/dlink_gdbserver_console
