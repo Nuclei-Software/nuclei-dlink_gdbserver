@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/bin/env bash
+
+set -e
 
 ###############################################################################
 # 定义Qt目录
@@ -34,6 +36,8 @@ rm -f ./dpkg/Linux_"$APP_VERSION"_x86_64.deb
 mkdir ./dpkg/Linux_"$APP_VERSION"_x86_64
 # 使用linuxdeployqt拷贝依赖so库到打包目录
 export QMAKE=$QT_DIR/bin/qmake
+pwd
+ls -l ./build_debug/out/
 ./tools/linuxdeploy-x86_64.AppImage --executable=./build_debug/out/"$APP_NAME" --appdir=./dpkg/Linux_"$APP_VERSION"_x86_64/opt --plugin=qt
 rm -rf ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/apprun-hooks
 mv ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/usr ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"
