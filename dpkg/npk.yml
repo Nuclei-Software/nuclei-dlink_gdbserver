@@ -1,0 +1,18 @@
+name: tool-dlink
+owner: nuclei
+os: lin64
+version: 0.9.0
+description: DLink GDB Server Tool
+details: DLink GDB Server Tool
+type: tool
+keywords:
+  - tool
+  - gdb
+license: Apache-2.0
+homepage: https://github.com/Nuclei-Software/nuclei-dlink_gdbserver
+
+environment:
+  - key: gdbserver
+    value: dlink_gdbserver_console
+    description: dlink gdb server cli tool
+    system: true

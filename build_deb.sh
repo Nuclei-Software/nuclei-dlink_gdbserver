@@ -45,6 +45,8 @@ mv ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/bin/"$APP_NAME" ./dpkg/Lin
 mv ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/bin/qt.conf ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/qt.conf
 
 cp ./build_debug/out/"$APP_NAME"_console ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/"$APP_NAME"_console
+cp ./dlink_gdbserver.cfg ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/dlink_gdbserver.cfg
+cp ./dpkg/npk.yml ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/npk.yml
 
 rm -rf ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/bin
 sed -i "s/Prefix = ..\//Prefix = .\//g" ./dpkg/Linux_"$APP_VERSION"_x86_64/opt/"$APP_NAME"/qt.conf
