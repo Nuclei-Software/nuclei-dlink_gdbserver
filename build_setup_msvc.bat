@@ -36,6 +36,8 @@ del /f /q /a .\sed*
 :: 构建打包目录
 xcopy /y .\build_debug\out\%APP_NAME%.exe .\InnoSetup\build\
 xcopy /y .\build_debug\out\%APP_NAME%_console.exe .\InnoSetup\build\
+xcopy /y .\dlink_gdbserver.cfg .\InnoSetup\build\
+xcopy /y .\InnoSetup\npk.yml .\InnoSetup\build\
 :: 使用windeployqt拷贝依赖dll库到打包目录
 windeployqt --dir .\InnoSetup\build .\InnoSetup\build\%APP_NAME%.exe
 windeployqt --dir .\InnoSetup\build .\InnoSetup\build\%APP_NAME%_console.exe

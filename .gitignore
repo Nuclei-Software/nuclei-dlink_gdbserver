@@ -82,6 +82,7 @@ CMakeLists.txt.user*
 build_*
 .vscode
 dpkg/*
+InnoSetup/*
 !dpkg/DEBIAN
 !build_setup_msvc.bat
 !build_setup.bat
