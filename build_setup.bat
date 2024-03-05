@@ -57,7 +57,7 @@ echo "build success!"
 echo "wait zipping..."
 xcopy /y .\InnoSetup\build .\InnoSetup\%APP_NAME% /E /H /C /I
 cd InnoSetup
-tar -a -c -f nuclei-%APP_NAME%-v%APP_VERSION%-win32-x32.zip %APP_NAME%
+7z a -tzip nuclei-%APP_NAME%-v%APP_VERSION%-win32-x32.zip %APP_NAME%
 cd ..
 rmdir /Q /S .\InnoSetup\%APP_NAME%
 echo "zip finish!"

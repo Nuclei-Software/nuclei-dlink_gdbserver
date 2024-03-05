@@ -16,6 +16,7 @@ windows-build-job:
   script:
     - echo "Compiling the code..."
     - set PATH=D:\Qt\6.6.2\mingw_64\bin;D:\Qt\Tools\mingw1120_64\bin;C:\Program Files (x86)\Inno Setup 6;%PATH%
+    - set PATH=C:\Program Files\7-Zip;%PATH%
     - call .\build_setup.bat
     - .\InnoSetup\build\dlink_gdbserver_console.exe -v
     - echo "Compile complete."
