@@ -47,7 +47,6 @@ linux-build-job:
   stage: build
   tags:
     - net::outside
-    - env::shell
     - user::xl_ci
     - sw::qt
   script:
