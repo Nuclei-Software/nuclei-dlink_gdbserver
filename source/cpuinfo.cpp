@@ -16,24 +16,56 @@
 #define GB                        (MB * 1024)
 #define EXTENSION_NUM             (26)
 #define POWER_FOR_TWO(n)          (1 << (n))
-#define EXTRACT_FIELD(val, which) (((val) & (which)) / ((which) & ~((which)-1)))
-#define print_size(bytes) do {\
-if (bytes / GB) {\
-        CommandPrint(" %ldGB", bytes / GB);\
-} else if (bytes / MB) {\
-        CommandPrint(" %ldMB", bytes / MB);\
-} else if (bytes / KB) {\
-        CommandPrint(" %ldKB", bytes / KB);\
-} else {\
-        CommandPrint(" %ldByte", bytes);\
-}\
-} while(0);
-#define show_cache_info(set, way, lsize) do {\
-print_size((set) * (way) * (lsize));\
-    CommandPrint("(set=%ld,", set);\
-    CommandPrint("way=%ld,", way);\
-    CommandPrint("lsize=%ld)\n", lsize);\
-} while(0);
+#define LINESZ(n)                 ((n) > 0 ? POWER_FOR_TWO((n) - 1) : 0)
+#define EXTRACT_FIELD(val, which) (((val) & (which)) / ((which) & ~((which) - 1)))
+
+#define show_safety_mechanism(safetyMode) do {\
+    switch (safetyMode) {\
+        case 0b00: \
+            CommandPrint(" No-Safety-Mechanism"); \
+            break; \
+        case 0b01: \
+            CommandPrint(" Lockstep"); \
+            break; \
+        case 0b10: \
+            CommandPrint(" Lockstep+SplitMode"); \
+            break; \
+        case 0b11: \
+            CommandPrint(" ASIL-B"); \
+            break; \
+    } \
+} while (0)
+
+#define show_vpu_degree(degree) do { \
+    switch (degree) { \
+        case 0b00: \
+            CommandPrint(" DLEN=VLEN/2"); \
+            break; \
+        case 0b01: \
+            CommandPrint(" DLEN=VLEN"); \
+            break; \
+    } \
+} while (0)
+
+#define print_size(bytes) do { \
+    if ((bytes) / GB) { \
+        CommandPrint(" %d GB", (int)((bytes) / GB)); \
+    } else if ((bytes) / MB) { \
+        CommandPrint(" %d MB", (int)((bytes) / MB)); \
+    } else if ((bytes) / KB) { \
+        CommandPrint(" %d KB", (int)((bytes) / KB)); \
+    } else { \
+        CommandPrint(" %d Byte", (int)(bytes)); \
+    } \
+} while (0)
+
+#define show_cache_info(set, way, lsize, ecc) do { \
+    print_size((set) * (way) * (lsize)); \
+    CommandPrint("(set=%d,", (int)(set)); \
+    CommandPrint("way=%d,", (int)(way)); \
+    CommandPrint("lsize=%d,", (int)(lsize)); \
+    CommandPrint("ecc=%d)", !!(ecc)); \
+} while (0)
 
 Cpuinfo::Cpuinfo(QObject *parent)
     : QObject{parent}
@@ -56,7 +88,7 @@ void Cpuinfo::ShowInfo(Target* target, Server* server)
     quint64 csr_marchid, csr_mimpid, csr_mcfg, csr_micfg, csr_mdcfg,
         iregion_base, csr_mirgb, csr_mfiocfg, csr_mppicfg, csr_mtlbcfg;
     cpuinfo_hex.clear();
-    CommandPrint("----Supported configuration information\n");
+    CommandPrint("-----Nuclei RISC-V CPU Configuration Information-----\n");
     csr_marchid = target->ReadRegister(RV_REG_MARCHID);
     CommandPrint("         MARCHID: %llx\n", csr_marchid);
     csr_mimpid = target->ReadRegister(RV_REG_MIMPID);
@@ -71,12 +103,23 @@ void Cpuinfo::ShowInfo(Target* target, Server* server)
     for (int i = 0; i < EXTENSION_NUM; i++) {
         if (target->misa->value & BIT(i)) {
             if ('X' == ('A' + i)) {
-                CommandPrint(" Zc XLCZ");
+                CommandPrint(" NICE");
             } else {
                 CommandPrint(" %c", 'A' + i);
             }
         }
     }
+    csr_mcfg = target->ReadRegister(RV_REG_MCFG_INFO);
+    if (csr_mcfg & BIT(12))
+        CommandPrint(" Xxldspn1x");
+    if (csr_mcfg & BIT(13))
+        CommandPrint(" Xxldspn2x");
+    if (csr_mcfg & BIT(14))
+        CommandPrint(" Xxldspn3x");
+    if (csr_mcfg & BIT(15))
+        CommandPrint(" Zc Xxlcz");
+    if (csr_mcfg & BIT(19))
+        CommandPrint(" Smwg");
     CommandPrint("\n");
     /* Support */
     csr_mcfg = target->ReadRegister(RV_REG_MCFG_INFO);
@@ -118,37 +161,30 @@ void Cpuinfo::ShowInfo(Target* target, Server* server)
         CommandPrint(" SMP");
     }
     if (csr_mcfg & BIT(12)) {
-        CommandPrint(" DSP-N1");
+        CommandPrint(" DSP_N1");
     }
     if (csr_mcfg & BIT(13)) {
-        CommandPrint(" DSP-N2");
+        CommandPrint(" DSP_N2");
     }
     if (csr_mcfg & BIT(14)) {
-        CommandPrint(" DSP-N3");
+        CommandPrint(" DSP_N3");
     }
     if (csr_mcfg & BIT(15)) {
-        CommandPrint(" Zc-xlcz");
+        CommandPrint(" ZC_XLCZ_EXT");
     }
     if (csr_mcfg & BIT(16)) {
         CommandPrint(" IREGION");
     }
     if (csr_mcfg & BIT(19)) {
-        CommandPrint(" Smwg");
+        CommandPrint(" SEC_MODE");
     }
     if (csr_mcfg & BIT(20)) {
         CommandPrint(" ETRACE");
     }
-    if (csr_mcfg & BIT(21)) {
-        if (csr_mcfg & BIT(22)) {
-            CommandPrint(" ASIL-B");
-        } else {
-            CommandPrint(" Lockstep+Split");
-        }
-    } else {
-        if (csr_mcfg & BIT(22)) {
-            CommandPrint(" Lockstep");
-        }
-    }
+    if (csr_mcfg & BIT(23))
+        CommandPrint(" VNICE");
+    show_safety_mechanism(EXTRACT_FIELD(csr_mcfg, 0x3 << 21));
+    show_vpu_degree(EXTRACT_FIELD(csr_mcfg, 0x3 << 17));
     CommandPrint("\n");
     /* ILM */
     if (csr_mcfg & BIT(7)) {
@@ -179,7 +215,8 @@ void Cpuinfo::ShowInfo(Target* target, Server* server)
         CommandPrint("          ICACHE:");
         show_cache_info(POWER_FOR_TWO(EXTRACT_FIELD(csr_micfg, 0xF) +3),
                         EXTRACT_FIELD(csr_micfg, 0x7 << 4) + 1,
-                        POWER_FOR_TWO(EXTRACT_FIELD(csr_micfg, 0x7 << 7) + 2));
+                        POWER_FOR_TWO(EXTRACT_FIELD(csr_micfg, 0x7 << 7) + 2),
+                        csr_mcfg & BIT(1));
     }
     /* DCACHE */
     if (csr_mcfg & BIT(10)) {
@@ -187,7 +224,22 @@ void Cpuinfo::ShowInfo(Target* target, Server* server)
         CommandPrint("          DCACHE:");
         show_cache_info(POWER_FOR_TWO(EXTRACT_FIELD(csr_mdcfg, 0xF) +3),
                         EXTRACT_FIELD(csr_mdcfg, 0x7 << 4) + 1,
-                        POWER_FOR_TWO(EXTRACT_FIELD(csr_mdcfg, 0x7 << 7) + 2));
+                        POWER_FOR_TWO(EXTRACT_FIELD(csr_mdcfg, 0x7 << 7) + 2),
+                        csr_mcfg & BIT(1));
+    }
+    /* TLB only present with MMU, when PLIC present MMU will present */
+    if (csr_mcfg & BIT(3)) {
+        csr_mtlbcfg = target->ReadRegister(RV_REG_MTLBCFG_INFO);
+        if (csr_mtlbcfg) {
+            CommandPrint("             TLB:");
+            CommandPrint(" MainTLB(set=%lu way=%lu entry=%lu ecc=%lu) ITLB(entry=%lu) DTLB(entry=%lu)\n",
+                        POWER_FOR_TWO(EXTRACT_FIELD(csr_mtlbcfg, 0xF) + 3),
+                        EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 4) + 1,
+                        LINESZ(EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 7)),
+                        EXTRACT_FIELD(csr_mtlbcfg, 0x1 << 10),
+                        LINESZ(EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 16)),
+                        LINESZ(EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 19)));
+        }
     }
     /* IREGION */
     if (csr_mcfg & BIT(16)) {
@@ -222,12 +274,24 @@ void Cpuinfo::ShowInfo(Target* target, Server* server)
             CommandPrint(" IOCP_NUM=%ld", EXTRACT_FIELD(smp_cfg, 0x3F << 7));
             CommandPrint(" PMON_NUM=%ld\n", EXTRACT_FIELD(smp_cfg, 0x3F << 13));
         }
+        /* ECLIC */
+        if (csr_mcfg & BIT(2)) {
+            uint64_t clic_cfg = target->ReadMemory(iregion_base + 0x20000, 4).toLongLong(NULL, 16);
+            uint64_t clic_info = target->ReadMemory(iregion_base + 0x20004, 4).toLongLong(NULL, 16);
+            uint64_t clic_mth = target->ReadMemory(iregion_base + 0x20008, 4).toLongLong(NULL, 16);
+            CommandPrint("           ECLIC:");
+            CommandPrint(" VERSION=0x%x", EXTRACT_FIELD(clic_info, 0xFF << 13));
+            CommandPrint(" NUM_INTERRUPT=%x", EXTRACT_FIELD(clic_info, 0xFFF));
+            CommandPrint(" CLICINTCTLBITS=%x", EXTRACT_FIELD(clic_info, 0xF << 21));
+            CommandPrint(" MTH=%x", EXTRACT_FIELD(clic_mth, 0xFF << 24));
+            CommandPrint(" NLBITS=%x\n", EXTRACT_FIELD(clic_cfg, 0xF << 1));
+        }
         /* L2CACHE */
         if (smp_cfg & 0x1) {
             CommandPrint("         L2CACHE:");
             uint64_t cc_cfg = target->ReadMemory(iregion_base + 0x40008, 4).toLongLong(NULL, 16);
             show_cache_info(POWER_FOR_TWO(EXTRACT_FIELD(cc_cfg, 0xF)), EXTRACT_FIELD(cc_cfg, 0xF << 4) + 1,
-                            POWER_FOR_TWO(EXTRACT_FIELD(cc_cfg, 0x7 << 8) + 2));
+                            POWER_FOR_TWO(EXTRACT_FIELD(cc_cfg, 0x7 << 8) + 2), cc_cfg & BIT(11));
         }
         /* INFO */
         CommandPrint("     INFO-Detail:\n");
@@ -249,22 +313,7 @@ void Cpuinfo::ShowInfo(Target* target, Server* server)
             } else {
                 CommandPrint("                  cppi    : %#lx", (mcppi_cfg_hi << 32) | (mcppi_cfg_lo & (~0x3FF)));
             }
-            print_size(POWER_FOR_TWO(EXTRACT_FIELD(mcppi_cfg_lo, 0xF << 1) - 1) * KB);
-            CommandPrint("\n");
-        }
-    }
-    /* TLB */
-    if (csr_mcfg & BIT(3)) {
-        csr_mtlbcfg = target->ReadRegister(RV_REG_MTLBCFG_INFO);
-        if (csr_mtlbcfg) {
-            CommandPrint("            DTLB: %ld entry\n", POWER_FOR_TWO(EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 19) - 1));
-            CommandPrint("            ITLB: %ld entry\n", POWER_FOR_TWO(EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 16) - 1));
-            CommandPrint("            MTLB:");
-            CommandPrint(" %ld entry", POWER_FOR_TWO(EXTRACT_FIELD(csr_mtlbcfg, 0xF) + 3) *
-                                            (EXTRACT_FIELD(csr_mtlbcfg, 0x7 << 4) + 1));
-            if (csr_mtlbcfg & BIT(10)) {
-                CommandPrint(" has_ecc");
-            }
+            print_size(POWER_FOR_TWO(EXTRACT_FIELD(mcppi_cfg_lo, 0x1F << 1) - 1) * KB);
             CommandPrint("\n");
         }
     }
@@ -273,7 +322,7 @@ void Cpuinfo::ShowInfo(Target* target, Server* server)
         csr_mfiocfg = target->ReadRegister(RV_REG_MFIOCFG_INFO);
         CommandPrint("             FIO:");
         CommandPrint(" %#lx", csr_mfiocfg & (~0x3FF));
-        print_size(POWER_FOR_TWO(EXTRACT_FIELD(csr_mfiocfg, 0xF << 1) - 1) * KB);
+        print_size(POWER_FOR_TWO(EXTRACT_FIELD(csr_mfiocfg, 0x1F << 1) - 1) * KB);
         CommandPrint("\n");
     }
     /* PPI */
@@ -281,7 +330,7 @@ void Cpuinfo::ShowInfo(Target* target, Server* server)
         csr_mppicfg = target->ReadRegister(RV_REG_MPPICFG_INFO);
         CommandPrint("             PPI:");
         CommandPrint(" %#lx", csr_mppicfg & (~0x3FF));
-        print_size(POWER_FOR_TWO(EXTRACT_FIELD(csr_mppicfg, 0xF << 1) - 1) * KB);
+        print_size(POWER_FOR_TWO(EXTRACT_FIELD(csr_mppicfg, 0x1F << 1) - 1) * KB);
         CommandPrint("\n");
     }
     CommandPrint("----End of cpuinfo\n");
