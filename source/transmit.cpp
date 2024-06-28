@@ -7,6 +7,8 @@ extern quint64 target_packet_max;
 
 Transmit::Transmit()
 {
+    protocol = "jtag";
+
     type = new Type;
     server = new Server;
     target = new Target;
@@ -20,13 +22,13 @@ Transmit::Transmit()
 void Transmit::Reset()
 {
     close_flag = false;
-    algorithm->flash.spi_base = 0;
-    algorithm->flash.xip_base = 0;
-    algorithm->flash.xip_size = 0;
-    algorithm->flash.block_size = 0;
+    algorithm->flash.spi_base = 0x10014000;
+    algorithm->flash.xip_base = 0x20000000;
+    algorithm->flash.xip_size = 0x10000000;
+    algorithm->flash.block_size = 0x10000;
     algorithm->flash.loader_path = NULL;
-    algorithm->workarea.size = 0;
-    algorithm->workarea.addr = 0;
+    algorithm->workarea.addr = 0x00;
+    algorithm->workarea.size = 0x00;
     algorithm->workarea.backup = false;
     algorithm->workarea.mem = NULL;
     target_run_flag = false;
@@ -85,6 +87,16 @@ void Transmit::ServerCmdDeal(QByteArray msg)
                 } else {
                     qDebug() << "set protocol and connect fail.";
                 }
+                //Get dlink version
+                send.clear();
+                send.append("+:read:version;");
+                target->SendCmd(send);
+                recv = target->GetRsp();
+                if (recv.contains("version")) {
+                    qDebug("Dlink Firmware: %s Version", recv.mid(15).removeLast().constData());
+                } else {
+                    qDebug() << "read version fail.";
+                }
                 //Get target MISA CSR register
                 send.clear();
                 send.append("+:read:misa;");
@@ -95,7 +107,7 @@ void Transmit::ServerCmdDeal(QByteArray msg)
                     target->misa->MisaInit(value);
                     memxml->flash = algorithm->flash;
                     memxml->InitMemXml(target->misa);
-                    qDebug() << "read misa:" << QString("%1").arg(value, 4, 16);
+                    qDebug() << "read misa:" << QString("0x%1").arg(value, 4, 16);
                 } else {
                     qDebug() << "read misa fail.";
                 }
@@ -107,9 +119,9 @@ void Transmit::ServerCmdDeal(QByteArray msg)
                 if (recv.contains("vlenb")) {
                     sscanf(recv.constData(), "-:read:vlenb:%016llx;", &value);
                     regxml->InitRegXml(target->misa, value);
-                    qDebug() << "read vlenb:" << QString("%1").arg(value, 4, 16);
-                } else {
-                    qDebug() << "read vlenb fail.";
+                    if (value != 0xffffffff) {
+                        qDebug() << "read vlenb:" << QString("0x%1").arg(value, 4, 16);
+                    }
                 }
             } else if (msg.contains("qXfer:memory-map:read::")) {
                 sscanf(msg.constData(), "qXfer:memory-map:read::%llx,%llx", &addr, &len);
@@ -369,8 +381,6 @@ void Transmit::ServerCmdDeal(QByteArray msg)
 void Transmit::run()
 {
     QByteArray msg;
-
-    target->ReadVersion();
 
     while (1) {
         if (close_flag) {

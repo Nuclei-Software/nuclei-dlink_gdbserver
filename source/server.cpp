@@ -4,6 +4,8 @@ extern bool debug;
 
 Server::Server(QObject *parent) : QObject(parent)
 {
+    Port = 3333;
+
     type = new Type;
     TcpServer = new QTcpServer;
     TcpSocket = new QTcpSocket;
@@ -27,7 +29,7 @@ void Server::Deinit()
     disconnect(TcpServer, 0, 0, 0);
     TcpServer->close();
     qDebug() << "Server Close:" << Port;
-    Port = 0;
+    Port = 3333;
 }
 
 void Server::Connect()

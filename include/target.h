@@ -24,7 +24,6 @@ public:
     QByteArray ReadMemory(quint64 addr, quint32 length);
     void WriteRegister(quint32 number, quint64 value);
     quint64 ReadRegister(quint32 number);
-    void ReadVersion(void);
 
 private:
     Type* type;

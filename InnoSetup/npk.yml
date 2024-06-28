@@ -1,7 +1,7 @@
 name: tool-dlink
 owner: nuclei
 os: win64
-version: 0.9.0
+version: 0.9.1
 description: DLink GDB Server Tool
 details: DLink GDB Server Tool
 type: tool

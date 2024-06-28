@@ -20,6 +20,8 @@ public:
     QString SerialName;
     qint32 SerialBaud;
     QString SerialNumber;
+    quint16 vid;
+    quint16 pid;
 
 private:
     QSerialPort* SerialPort;

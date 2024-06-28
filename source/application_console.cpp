@@ -1,6 +1,6 @@
 #include "../include/application_console.h"
 
-QByteArray version = "v0.9.0";
+QByteArray version = "v0.9.1";
 bool debug = false;
 bool noack_mode = false;
 quint64 target_packet_max = 0x400;
@@ -54,6 +54,12 @@ void Application::Connect(QString cfg_path)
             if (line.contains('#')) {
                 continue;
             }
+            if (line == "") {
+                continue;
+            }
+            if (debug) {
+                qDebug() << line;
+            }
             //split cfg line
             QList<QString> command = line.split(' ');
             if (0 == command[0].compare("debug")) {
@@ -77,6 +83,10 @@ void Application::Connect(QString cfg_path)
                     transmit->target->serial->SerialBaud = command[2].toUInt(nullptr, 10);
                 } else if (0 == command[1].compare("number")) {
                     transmit->target->serial->SerialNumber = command[2];
+                } else if (0 == command[1].compare("vid")) {
+                    transmit->target->serial->vid = command[2].toUInt(nullptr, 16);
+                } else if (0 == command[1].compare("pid")) {
+                    transmit->target->serial->pid = command[2].toUInt(nullptr, 16);
                 }
             }
             //transport command group

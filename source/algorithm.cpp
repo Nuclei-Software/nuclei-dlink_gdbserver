@@ -4,7 +4,16 @@ extern bool debug;
 
 Algorithm::Algorithm(QObject *parent)
     : QObject{parent}
-{}
+{
+    flash.spi_base = 0x10014000;
+    flash.xip_base = 0x20000000;
+    flash.xip_size = 0x10000000;
+    flash.block_size = 0x10000;
+
+    workarea.addr = 0x00;
+    workarea.size = 0x00;
+    workarea.backup = false;
+}
 
 void Algorithm::BackupWorkarea(Target* target)
 {
