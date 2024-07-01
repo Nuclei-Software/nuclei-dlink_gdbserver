@@ -20,6 +20,10 @@ void Application::Init(int argc, char *argv[])
             if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
                 qDebug("Dlink GDB Server: %s Version", version.constData());
                 exit(0);
+            } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+                qDebug("Dlink GDB Server Console Tool %s", version.constData());
+                qDebug("dlink_gdbserver_console -f <cfgfile> -p <gdbport>");
+                exit(0);
             } else if (strcmp(argv[i], "-f") == 0) {
                 if (i + 1 < argc) {
                     cfgfile = argv[++i];
@@ -47,6 +51,7 @@ void Application::Connect(QString cfg_path, unsigned int port)
     transmit->Reset();
 
     if (cfg_path.isEmpty() == false && cfg.exists()) {
+        qDebug() << "Loading dlink configuration file " << cfg_path;
         cfg.open(QIODevice::ReadOnly | QIODevice::Text);
         while (!cfg.atEnd()) {
             QString line = cfg.readLine();
@@ -135,8 +140,8 @@ void Application::Connect(QString cfg_path, unsigned int port)
             }
         }
     } else {
-        if (cfg_path.isEmpty()) {
-            qDebug() << "dlink configuration file " << cfg_path << " not found!";
+        if (cfg_path.isEmpty() == false) {
+            qDebug() << "dlink configuration file " << cfg_path << " not exist, please check!";
             exit(-1);
         }
     }
