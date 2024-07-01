@@ -15,7 +15,7 @@ Serial::Serial(QObject *parent)
     connect(this, SIGNAL(readyWrite(QByteArray)), this, SLOT(ReadyWrite(QByteArray)));
 }
 
-void Serial::Init()
+int Serial::Init()
 {
     bool flag_serial = false;
     info = QSerialPortInfo::availablePorts();
@@ -75,7 +75,7 @@ void Serial::Init()
         }
     }
     if (flag_serial == false) {
-        qDebug() << "Here are a list of possible dlink device matched:";
+        qDebug() << "Here are a list of possible dlink devices matched:";
         qint32 index = 0;
         QString last_serialNumber;
         QString device_info;
@@ -100,25 +100,34 @@ void Serial::Init()
         }
         qDebug() << "Usually the dlink debug port is a serial port with lower number, eg. COM0 in COM0/COM1 of dlink device";
     }
-#ifdef WIN32
-    SerialPort->setPortName(SerialName);
-#else
+#ifndef WIN32
     QString linux_dev = "/dev/";
-    SerialName = linux_dev + SerialName;
-    SerialPort->setPortName(SerialName);
+    if (SerialName.isEmpty() == false && SerialName.startsWith(linux_dev) == false) {
+        // If serial port name not startswith /dev/, just add it
+        SerialName = linux_dev + SerialName;
+    }
 #endif
+
+    if (SerialName.isEmpty() == true) {
+        qDebug() << "No dlink serial port is specified, please check your serial port configuration!";
+        return -1;
+    } else {
+        qDebug() << "Using serial port " << SerialName << " as dlink debug port!";
+    }
+    SerialPort->setPortName(SerialName);
     SerialPort->setBaudRate(SerialBaud);
     SerialPort->setDataBits(QSerialPort::Data8);
     SerialPort->setParity(QSerialPort::NoParity);
     SerialPort->setStopBits(QSerialPort::OneStop);
     SerialPort->setFlowControl(QSerialPort::NoFlowControl);
     if (SerialPort->open(QIODevice::ReadWrite)) {
-        qDebug() << "Open:" << SerialName << " baud:" << SerialBaud;
+        qDebug() << "Opened " << SerialName << " baud:" << SerialBaud;
     } else {
-        qDebug() << "Fail to open:" << SerialName;
-        return;
+        qDebug() << "Failed to open:" << SerialName;
+        return -1;
     }
     connect(SerialPort, SIGNAL(readyRead()), this, SLOT(ReadyRead()));
+    return 0;
 }
 
 void Serial::Deinit()

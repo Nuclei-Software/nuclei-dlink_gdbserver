@@ -12,7 +12,12 @@ Target::Target(QObject *parent) : QObject(parent)
 
 void Target::Init()
 {
-    serial->Init();
+    if (serial->Init() == 0) {
+        // Here we are ready for gdb connection
+        fprintf(stderr, "Started by GNU MCU Eclipse\n");
+    } else {
+        fprintf(stderr, "Cannot open a valid dlink device, please check!\n");
+    }
 }
 
 void Target::Deinit()

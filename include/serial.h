@@ -12,7 +12,7 @@ class Serial : public QObject
 public:
     explicit Serial(QObject *parent = nullptr);
 
-    void Init();
+    int Init();
     void Deinit();
     void Write(QByteArray msg);
     QByteArray Read();

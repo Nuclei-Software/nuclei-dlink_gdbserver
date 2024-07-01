@@ -39,7 +39,6 @@ void Transmit::Init()
     server->Init();
     target->Init();
     qDebug("Dlink GDB Server: %s Version", version.constData());
-    fprintf(stderr, "Started by GNU MCU Eclipse\n");
 }
 
 void Transmit::Deinit()
