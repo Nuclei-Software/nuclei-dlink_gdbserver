@@ -21,7 +21,7 @@ private:
     Transmit* transmit;
 
 public slots:
-    void Connect(QString cfg_path);
+    void Connect(QString cfg_path, unsigned int port);
     void Disconnect();
 };
 

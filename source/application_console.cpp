@@ -13,40 +13,40 @@ Application::Application(QObject *parent)
 
 void Application::Init(int argc, char *argv[])
 {
-    if (argc == 2) {
+    QString cfgfile;
+    unsigned int cfgport = 0;
+    if (argc >= 2) {
         for (int i = 0; i < argc; i++) {
-            if (strncmp(argv[i], "-v", 2) == 0)
-            {
+            if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
                 qDebug("Dlink GDB Server: %s Version", version.constData());
                 exit(0);
+            } else if (strcmp(argv[i], "-f") == 0) {
+                if (i + 1 < argc) {
+                    cfgfile = argv[++i];
+                } else {
+                    qDebug() << "Error: -f option require a dlink config file path argument.";
+                    exit(-1);
+                }
+            } else if (strcmp(argv[i], "-p") == 0) {
+                if (i + 1 < argc) {
+                    cfgport = QString::fromLocal8Bit(argv[++i]).toUInt();
+                } else {
+                    qDebug() << "Error: -p option require a gdb port number argument.";
+                    exit(-1);
+                }
             }
         }
-    } else if (argc == 3) {
-        for (int i = 0; i < argc; i++) {
-            if (strncmp(argv[i], "-f", 2) == 0) {
-                //start app
-                Connect(argv[i + 1]);
-                break;
-            } else if (strncmp(argv[i], "-v", 2) == 0)
-            {
-                qDebug("Dlink GDB Server: %s Version", version.constData());
-            }
-        }
-    } else {
-        qDebug() << "Command Error:";
-        qDebug() << "Example: ./dlink_gdbserver_console -v";
-        qDebug() << "Example: ./dlink_gdbserver_console -f dlink_gdbserver.cfg";
-        exit(-1);
     }
+    Connect(cfgfile, cfgport);
 }
 
-void Application::Connect(QString cfg_path)
+void Application::Connect(QString cfg_path, unsigned int port)
 {
     QFile cfg(cfg_path);
 
     transmit->Reset();
 
-    if (cfg.exists()) {
+    if (cfg_path.isEmpty() == false && cfg.exists()) {
         cfg.open(QIODevice::ReadOnly | QIODevice::Text);
         while (!cfg.atEnd()) {
             QString line = cfg.readLine();
@@ -135,9 +135,15 @@ void Application::Connect(QString cfg_path)
             }
         }
     } else {
-        qDebug() << cfg_path;
-        qDebug() << "dlink_gdbserver.cfg not found!";
-        exit(-1);
+        if (cfg_path.isEmpty()) {
+            qDebug() << "dlink configuration file " << cfg_path << " not found!";
+            exit(-1);
+        }
+    }
+
+    if (port != 0) {
+        qDebug() << "Using gdb port " << port << " specified by command line argument -p!";
+        transmit->server->Port = port;
     }
 
     // When not able to connect a dlink device, or start a gdb server, just exit
