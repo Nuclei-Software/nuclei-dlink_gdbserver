@@ -76,10 +76,11 @@ int Serial::Init()
                 if ((pid == port.productIdentifier()) && (vid == port.vendorIdentifier())) {
                     if ((SerialNumber == port.serialNumber()) && (SerialName == port.portName())) {
                         flag_serial = true;
-                    } else {
-                        qDebug() << "Can't find serial port:" << SerialName << " serial number:" << SerialNumber << ", please check it.";
                     }
                 }
+            }
+            if (flag_serial == false) {
+                qDebug() << "Can't find serial port:" << SerialName << " serial number:" << SerialNumber << ", please check it.";
             }
         }
     }
