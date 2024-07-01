@@ -117,8 +117,8 @@ int Serial::Init()
     }
 #endif
 
-    if (SerialName.isEmpty() == true) {
-        qDebug() << "No dlink serial port is specified, please check your serial port configuration!";
+    if (flag_serial == false) {
+        qDebug() << "No matched dlink debug serial port found, please check your serial port configuration!";
         return -1;
     } else {
         qDebug() << "Using serial port " << SerialName << " as dlink debug port!";

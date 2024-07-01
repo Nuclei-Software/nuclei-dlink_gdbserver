@@ -10,13 +10,17 @@ Logout::Logout(QObject *parent)
 
 void Logout::run()
 {
+    QString msg;
     close_flag = false;
     while (1) {
         if (close_flag) {
             break;
         }
         if (!log_queue.empty()) {
-            emit Toui(log_queue.dequeue());
+            msg = log_queue.dequeue();
+            if (msg.isEmpty() == false) {
+                emit Toui(msg);
+            }
         }
     }
 }
