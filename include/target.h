@@ -16,7 +16,7 @@ public:
     Serial* serial;
     Misa* misa;
 
-    void Init();
+    int Init();
     void Deinit();
     void SendCmd(QByteArray msg);
     QByteArray GetRsp();

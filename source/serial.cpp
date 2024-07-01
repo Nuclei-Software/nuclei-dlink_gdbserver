@@ -19,6 +19,15 @@ int Serial::Init()
 {
     bool flag_serial = false;
     info = QSerialPortInfo::availablePorts();
+
+#ifndef WIN32
+    QString linux_dev = "/dev/";
+    if (SerialName.isEmpty() == false && SerialName.startsWith(linux_dev) == true) {
+        // If serial port name startswith /dev/ just remove it
+        SerialName = SerialName.remove(0, 5);
+    }
+#endif
+
     if (SerialNumber.isEmpty() && SerialName.isEmpty()) {
         int last_num = 0xFFFFFFFF;
         QString temp;
@@ -101,7 +110,6 @@ int Serial::Init()
         qDebug() << "Usually the dlink debug port is a serial port with lower number, eg. COM0 in COM0/COM1 of dlink device";
     }
 #ifndef WIN32
-    QString linux_dev = "/dev/";
     if (SerialName.isEmpty() == false && SerialName.startsWith(linux_dev) == false) {
         // If serial port name not startswith /dev/, just add it
         SerialName = linux_dev + SerialName;

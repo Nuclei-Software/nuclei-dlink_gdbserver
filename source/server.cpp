@@ -15,9 +15,9 @@ Server::Server(QObject *parent) : QObject(parent)
 void Server::Init()
 {
     if (TcpServer->listen(QHostAddress::Any, Port)) {
-        qDebug() << "Server listen to port:" << Port;
+        qDebug() << "Server listen to port: " << Port;
     } else {
-        qDebug() << "Server fail listen to port:" << Port;
+        qDebug() << "Server failed to listen to port: " << Port;
         return;
     }
     connect(TcpServer, SIGNAL(newConnection()), this, SLOT(Connect()));
@@ -28,7 +28,7 @@ void Server::Deinit()
     Disconnect();
     disconnect(TcpServer, 0, 0, 0);
     TcpServer->close();
-    qDebug() << "Server Close:" << Port;
+    qDebug() << "Server Close: " << Port;
     Port = 3333;
 }
 
@@ -37,13 +37,13 @@ void Server::Connect()
     TcpSocket = TcpServer->nextPendingConnection();
     connect(TcpSocket, SIGNAL(readyRead()), this, SLOT(ReadyRead()));
     connect(TcpSocket, SIGNAL(disconnected()), this, SLOT(Disconnect()));
-    qDebug() << "Server socket connect:" << Port;
+    qDebug() << "Server socket connected: " << Port;
 }
 
 void Server::Disconnect()
 {
     TcpSocket->disconnect();
-    qDebug() << "Server socket disconnect:";
+    qDebug() << "Server socket disconnected: ";
     disconnect(TcpSocket, 0, 0, 0);
     TcpSocket->close();
     Message.clear();

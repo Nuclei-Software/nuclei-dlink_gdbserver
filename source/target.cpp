@@ -10,14 +10,16 @@ Target::Target(QObject *parent) : QObject(parent)
     misa = new Misa;
 }
 
-void Target::Init()
+int Target::Init()
 {
     if (serial->Init() == 0) {
         // Here we are ready for gdb connection
         fprintf(stderr, "Started by GNU MCU Eclipse\n");
     } else {
-        fprintf(stderr, "Cannot open a valid dlink device, please check!\n");
+        fprintf(stderr, "Cannot find a possible dlink device, please check!\n");
+        return -1;
     }
+    return 0;
 }
 
 void Target::Deinit()
