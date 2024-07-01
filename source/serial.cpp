@@ -47,6 +47,9 @@ int Serial::Init()
                 }
             }
         }
+        if (flag_serial == true) {
+            qDebug() << "Using auto probed dlink debug serial port " << SerialName << ".";
+        }
     } else {
         if (SerialNumber.isEmpty()) {
             foreach (QSerialPortInfo port, info) {
