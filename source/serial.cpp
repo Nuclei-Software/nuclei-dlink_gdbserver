@@ -20,12 +20,12 @@ void Serial::Init()
     bool flag_serial = false;
     info = QSerialPortInfo::availablePorts();
     if (SerialNumber.isEmpty() && SerialName.isEmpty()) {
-        int last_num = 0;
+        int last_num = 0xFFFFFFFF;
         QString temp;
         foreach (QSerialPortInfo port, info) {
             if ((pid == port.productIdentifier()) && (vid == port.vendorIdentifier())) {
                 temp = port.portName().remove(QRegularExpression("[A-Z]"));
-                if (last_num == 0) {
+                if (last_num == 0xFFFFFFFF) {
                     last_num = temp.remove(QRegularExpression("[a-z]")).toInt();
                     SerialName = port.portName();
                 } else {
