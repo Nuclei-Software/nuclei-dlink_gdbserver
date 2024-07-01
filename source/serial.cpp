@@ -37,15 +37,16 @@ int Serial::Init()
                 if (last_num == 0xFFFFFFFF) {
                     last_num = temp.remove(QRegularExpression("[a-z]")).toInt();
                     SerialName = port.portName();
+                    flag_serial = true;
                 } else {
                     if (last_num > temp.remove(QRegularExpression("[a-z]")).toInt()) {
                         last_num = temp.remove(QRegularExpression("[a-z]")).toInt();
                         SerialName = port.portName();
+                        flag_serial = true;
                     }
                 }
             }
         }
-        flag_serial = true;
     } else {
         if (SerialNumber.isEmpty()) {
             foreach (QSerialPortInfo port, info) {
@@ -117,7 +118,7 @@ int Serial::Init()
     }
 #endif
 
-    if (flag_serial == false) {
+    if (flag_serial == false || SerialName.isEmpty() == true) {
         qDebug() << "No matched dlink debug serial port found, please check your serial port configuration!";
         return -1;
     } else {
