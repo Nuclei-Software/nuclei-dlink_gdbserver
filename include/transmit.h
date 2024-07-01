@@ -20,7 +20,7 @@ class Transmit : public QThread
 public:
     Transmit();
     void Reset();
-    void Init();
+    int Init();
     void Deinit();
 
     QString protocol;

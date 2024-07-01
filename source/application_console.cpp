@@ -140,7 +140,11 @@ void Application::Connect(QString cfg_path)
         exit(-1);
     }
 
-    transmit->Init();
+    // When not able to connect a dlink device, or start a gdb server, just exit
+    if (transmit->Init() != 0) {
+        qDebug() << "Unable to start a dlink gdb server, exit now!";
+        exit(-1);
+    }
     transmit->start();
 }
 

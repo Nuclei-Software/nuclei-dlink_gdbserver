@@ -14,7 +14,7 @@ class Server : public QObject
 public:
     explicit Server(QObject *parent = nullptr);
 
-    void Init();
+    int Init();
     void Deinit();
     void Write(QByteArray msg);
     QByteArray Read();

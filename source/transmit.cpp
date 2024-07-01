@@ -34,14 +34,15 @@ void Transmit::Reset()
     target_run_flag = false;
 }
 
-void Transmit::Init()
+int Transmit::Init()
 {
     int flag = target->Init();
     qDebug("Dlink GDB Server: %s Version", version.constData());
     if (flag == 0) {
-        server->Init();
+        return server->Init();
     } else {
         qDebug("Will not start a gdb server!");
+        return -1;
     }
 }
 

@@ -12,15 +12,16 @@ Server::Server(QObject *parent) : QObject(parent)
     connect(this, SIGNAL(readyWrite(QByteArray)), this, SLOT(ReadyWrite(QByteArray)));
 }
 
-void Server::Init()
+int Server::Init()
 {
     if (TcpServer->listen(QHostAddress::Any, Port)) {
         qDebug() << "Server listen to port: " << Port;
     } else {
         qDebug() << "Server failed to listen to port: " << Port;
-        return;
+        return -1;
     }
     connect(TcpServer, SIGNAL(newConnection()), this, SLOT(Connect()));
+    return 0;
 }
 
 void Server::Deinit()
