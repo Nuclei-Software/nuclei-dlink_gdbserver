@@ -88,3 +88,4 @@ InnoSetup/*
 !build_setup.bat
 !build_deb.sh
 !build_dmg.sh
+!build_app.sh
