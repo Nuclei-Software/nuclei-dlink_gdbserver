@@ -89,7 +89,7 @@ int Serial::Init()
         }
     }
     if (flag_serial == false) {
-        qDebug() << "Here are a list of possible dlink devices matched:";
+        qDebug("Try to probe possible dlink devices matching pid=0x%x vid=0x%x", pid, vid);
         qint32 index = 0;
         QString last_serialNumber;
         QString device_info;
@@ -112,7 +112,11 @@ int Serial::Init()
                 }
             }
         }
-        qDebug() << "Usually the dlink debug port is a serial port with lower number, eg. COM0 in COM0/COM1 of dlink device";
+        if (index > 0) {
+            qDebug() << "Usually the dlink debug port is a serial port with lower number, eg. COM0 in COM0/COM1 of dlink device";
+        } else {
+            qDebug("No dlink devices found matching pid=0x%x vid=0x%x", pid, vid);
+        }
     }
 #ifndef WIN32
     if (SerialName.isEmpty() == false && SerialName.startsWith(linux_dev) == false) {
